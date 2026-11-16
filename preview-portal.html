@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Langley Islamic Centre (LIC) — Unified Portal Preview (All 10 Modules)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #F0F7FC;
+      color: #0F172A;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const ADMIN_PIN = "2580";
+    const STORAGE_KEY = "lic_portal_db_v2";
+
+    const PRAYER_TIMETABLE = [
+      { name: "Fajr", adhan: "05:45", jamaat: "06:15" },
+      { name: "Zuhar", adhan: "12:15", jamaat: "12:45" },
+      { name: "Asr", adhan: "14:30", jamaat: "15:00" },
+      { name: "Maghrib", adhan: "16:18", jamaat: "16:23" },
+      { name: "Isha", adhan: "18:00", jamaat: "19:30" },
+    ];
+
+    function detectCurrentActivity() {
+      const d = new Date();
+      const mins = d.getHours() * 60 + d.getMinutes();
+      if (mins >= 270 && mins <= 450) return "Fajr";
+      if (mins >= 720 && mins <= 870) return "Zuhar";
+      if (mins >= 871 && mins <= 975) return "Asr";
+      if (mins >= 976 && mins <= 1130) return "Quran Class";
+      if (mins >= 1131 && mins <= 1185) return "Maghrib";
+      return "Isha";
+    }
+
+    const INITIAL_SEED = {
+      occupancy: {
+        currentCount: 18,
+        maxCapacity: 40,
+        lastUpdated: new Date().toISOString(),
+        activeSessionName: detectCurrentActivity(),
+        peakToday: 31,
+      },
+      frequentVisitors: [
+        "Waqar Ahmed", "Nauman Raana", "Tariq Mahmood", "Yusuf Khan",
+        "Imran Siddiqui", "Bilal Hussain", "Zaid Al-Mansoor", "Dr. Haroon Rashid",
+        "Faisal Chaudhry", "Visiting Guest"
+      ],
+      checkIns: [
+        { id: "chk-101", visitorName: "Waqar Ahmed", travelMode: "Walking", occupantCount: 1, activity: "Isha", timestamp: new Date(Date.now() - 35*60000).toISOString() },
+        { id: "chk-102", visitorName: "Nauman Raana", travelMode: "Car Share", occupantCount: 3, activity: "Isha", timestamp: new Date(Date.now() - 28*60000).toISOString() },
+        { id: "chk-103", visitorName: "Tariq Mahmood", travelMode: "Bicycle", occupantCount: 1, activity: "Isha", timestamp: new Date(Date.now() - 22*60000).toISOString() },
+        { id: "chk-104", visitorName: "Imran Siddiqui", travelMode: "Car Share", occupantCount: 4, activity: "Isha", timestamp: new Date(Date.now() - 15*60000).toISOString() },
+        { id: "chk-105", visitorName: "Bilal Hussain", travelMode: "Car / Drive", occupantCount: 1, activity: "Isha", timestamp: new Date(Date.now() - 9*60000).toISOString() },
+      ],
+      mentors: [
+        { id: "mnt-1", name: "Dr. Haroon Rashid", role: "NHS Consultant & Medical School Lead", sector: "Medicine", specialties: ["UCAT Prep", "Medical Interviews", "A-Level Biology"], dbsVerified: true, dbsCertRef: "DBS-ENH-00184920", availability: "Saturdays 11:00–13:00" },
+        { id: "mnt-2", name: "Zainab Malik, MEng", role: "Principal AI & Cloud Architect", sector: "Tech/AI", specialties: ["Python & AI", "Software Engineering", "Tech Internships"], dbsVerified: true, dbsCertRef: "DBS-ENH-00192834", availability: "Wednesdays 18:45–20:00" },
+        { id: "mnt-3", name: "Ustadh & Tutor Kamran Ali", role: "Qualified Secondary Maths & Physics Teacher", sector: "GCSE/A-Level Tutoring", specialties: ["GCSE Higher Maths", "A-Level Further Maths", "Physics"], dbsVerified: true, dbsCertRef: "DBS-ENH-00176311", availability: "Sundays 14:00–16:00" },
+        { id: "mnt-4", name: "Tariq Mahmood, CEng", role: "Chartered Aerospace & Civil Engineer", sector: "Engineering", specialties: ["Mechanical & Civil Eng", "CAD & Robotics"], dbsVerified: true, dbsCertRef: "DBS-ENH-00165092", availability: "Fridays 19:00–20:30" },
+        { id: "mnt-5", name: "Hamza Qureshi", role: "Degree Apprenticeship Advisor", sector: "Apprenticeships", specialties: ["Level 6 Degree Apprenticeships", "Assessment Centres"], dbsVerified: true, dbsCertRef: "DBS-ENH-00198441", availability: "Saturdays 14:30–16:00" },
+      ],
+      quranSessions: [
+        { id: "session-1", title: "Session 1 — Foundation Qaida & Tajweed", timeWindow: "16:30–17:15", pickupAlertTime: "17:10", ustadhName: "Qari Abdullah Hasan", maxCapacity: 10 },
+        { id: "session-2", title: "Session 2 — Intermediate Nazirah", timeWindow: "17:15–18:00", pickupAlertTime: "17:55", ustadhName: "Qari Abdullah Hasan", maxCapacity: 10 },
+        { id: "session-3", title: "Session 3 — Advanced Tajweed & Hifz", timeWindow: "18:00–18:45", pickupAlertTime: "18:40", ustadhName: "Ustadha Amina Begum", maxCapacity: 10 },
+      ],
+      quranStudents: [
+        { id: "qs-1", sessionId: "session-1", childName: "Zayd Siddiqui", age: 7, parentName: "Imran Siddiqui", parentPhone: "07700 900111", travelMode: "Walking", attendance: "Present" },
+        { id: "qs-2", sessionId: "session-1", childName: "Maryam Siddiqui", age: 8, parentName: "Imran Siddiqui", parentPhone: "07700 900111", travelMode: "Walking", attendance: "Present" },
+        { id: "qs-3", sessionId: "session-1", childName: "Ibrahim Khan", age: 6, parentName: "Yusuf Khan", parentPhone: "07700 900222", travelMode: "Walking", attendance: "Present" },
+        { id: "qs-4", sessionId: "session-1", childName: "Aisha Mahmood", age: 7, parentName: "Tariq Mahmood", parentPhone: "07700 900333", travelMode: "Car Share", attendance: "Present" },
+        { id: "qs-5", sessionId: "session-1", childName: "Hamza Raana", age: 8, parentName: "Nauman Raana", parentPhone: "07700 900444", travelMode: "Car / Drive", attendance: "Present" },
+        { id: "qs-201", sessionId: "session-2", childName: "Hassan Ahmed", age: 10, parentName: "Waqar Ahmed", parentPhone: "07700 900412", travelMode: "Walking", attendance: "Present" },
+        { id: "qs-202", sessionId: "session-2", childName: "Khadijah Ahmed", age: 9, parentName: "Waqar Ahmed", parentPhone: "07700 900412", travelMode: "Walking", attendance: "Present" },
+        { id: "qs-203", sessionId: "session-2", childName: "Sulaiman Rashid", age: 10, parentName: "Dr. Haroon Rashid", parentPhone: "07700 900888", travelMode: "Car Share", attendance: "Present" },
+        { id: "qs-204", sessionId: "session-2", childName: "Dawud Rashid", age: 11, parentName: "Dr. Haroon Rashid", parentPhone: "07700 900888", travelMode: "Car Share", attendance: "Present" },
+        { id: "qs-205", sessionId: "session-2", childName: "Safiyyah Malik", age: 9, parentName: "Zainab Malik", parentPhone: "07700 900999", travelMode: "Walking", attendance: "Present" },
+        { id: "qs-206", sessionId: "session-2", childName: "Idris Farooq", age: 10, parentName: "Omar Farooq", parentPhone: "07700 900123", travelMode: "Walking", attendance: "Present" },
+        { id: "qs-207", sessionId: "session-2", childName: "Noor Qureshi", age: 10, parentName: "Hamza Qureshi", parentPhone: "07700 900234", travelMode: "Car / Drive", attendance: "Present" },
+        { id: "qs-208", sessionId: "session-2", childName: "Musa Ali", age: 9, parentName: "Kamran Ali", parentPhone: "07700 900345", travelMode: "Bicycle", attendance: "Present" },
+        { id: "qs-209", sessionId: "session-2", childName: "Hafsa Latif", age: 11, parentName: "Nadeem Latif", parentPhone: "07700 900456", travelMode: "Walking", attendance: "Present" },
+        { id: "qs-210", sessionId: "session-2", childName: "Bilal Anwar", age: 10, parentName: "Sajid Anwar", parentPhone: "07700 900567", travelMode: "Car Share", attendance: "Present" },
+      ],
+      events: [
+        {
+          id: "evt-1",
+          title: "Community Bereavement Condolence (Ta'ziyah) — Late Haji Abdul Karim",
+          category: "Bereavement Condolence",
+          date: "2026-11-18",
+          slots: [
+            { id: "s-1", timeWindow: "13:30 – 14:00", maxCapacity: 35, bookedCount: 35 },
+            { id: "s-2", timeWindow: "14:00 – 14:30", maxCapacity: 35, bookedCount: 28 },
+            { id: "s-3", timeWindow: "14:30 – 15:00", maxCapacity: 35, bookedCount: 14 },
+          ]
+        },
+        {
+          id: "evt-2",
+          title: "Fortnightly SL3 Youth Circle & Employability Workshop",
+          category: "Youth Circle",
+          date: "2026-11-21",
+          slots: [
+            { id: "s-4", timeWindow: "18:30 – 19:00", maxCapacity: 35, bookedCount: 22 },
+            { id: "s-5", timeWindow: "19:00 – 19:30", maxCapacity: 35, bookedCount: 19 },
+          ]
+        }
+      ],
+      carpoolMembers: [
+        { id: "cp-1", role: "Driver", name: "Nauman R.", sector: "Trelawney Ave", regularTimes: ["Fajr", "Isha"], spareSeats: 3, privatePhone: "07700 900444", notes: "Parks at Common Road unrestricted bay.", accepted: true },
+        { id: "cp-2", role: "Driver", name: "Dr. Haroon R.", sector: "London Rd", regularTimes: ["Fajr", "Isha"], spareSeats: 2, privatePhone: "07700 900888", notes: "Electric vehicle. Parks at Harrow Market Car Park.", accepted: false },
+        { id: "cp-3", role: "Driver", name: "Sister Zainab M.", sector: "Harrow Market", regularTimes: ["Sisters' Wednesday Class"], spareSeats: 3, privatePhone: "07700 900999", notes: "Sisters-only car share for Wednesday 13:30–14:30 Quran class.", accepted: false },
+        { id: "cp-4", role: "Passenger", name: "Uncle Bashir A.", sector: "Langley High St", regularTimes: ["Fajr", "Zuhar", "Isha"], spareSeats: 0, privatePhone: "07700 900712", notes: "Seeking lift from Langley High St during cold evenings.", accepted: false },
+      ],
+      neighbourIncidents: [
+        { id: "inc-1", ticketId: "LIC-NL-2026-8410", category: "Parking / Idling on Spitfire Close", reporterName: "Spitfire Close Resident (#14)", status: "Resolved", assignedLead: "Waqar Ahmed (Operations Lead)", description: "Silver saloon briefly waited near turning head at 17:12.", investigationNotes: "Door marshal relocated vehicle to Common Road within 90s.", createdAt: "2026-11-10 17:18", resolvedAt: "2026-11-10 18:05" },
+        { id: "inc-2", ticketId: "LIC-NL-2026-8492", category: "General Community Feedback", reporterName: "Mrs. H. Davies", status: "Resolved", assignedLead: "Waqar Ahmed (Operations Lead)", description: "Thank you to the hi-vis door marshals keeping Spitfire Close clear.", investigationNotes: "Logged for SBC Travel Plan audit file.", createdAt: "2026-11-14 20:02", resolvedAt: "2026-11-14 20:30" },
+      ],
+      volunteerTasks: [
+        { id: "vol-1", title: "16:15–17:15 Quran Class Door & Drop-Off Marshal", scheduleLabel: "Weekdays • 16:15–17:15", location: "Spitfire Close Entrance", status: "Open", description: "Wear hi-vis vest at entrance, greet Session 1 & 2 Quran students, and ensure zero waiting/idling on Spitfire Close." },
+        { id: "vol-2", title: "Isha Quiet Dispersal Steward", scheduleLabel: "Daily • 19:20–19:50", location: "Spitfire Close Entrance", status: "Open", description: "Ensure peaceful, quiet exit after Isha Jama'ah and guide drivers walking to Common Road & Harrow Market." },
+        { id: "vol-3", title: "Langley Pavilion Friday Setup", scheduleLabel: "Fridays • 12:15–14:15", location: "Langley Pavilion (Off-Site)", status: "Open", description: "Assist with prayer mats, PA check, and stewarding at our off-site Langley Pavilion Friday Jummah venue." },
+        { id: "vol-4", title: "Web/AI Digital Support", scheduleLabel: "Flexible • 1–2 hrs/week", location: "Remote / Spitfire Close", status: "Claimed", claimedByName: "Faisal Chaudhry", claimedByWhatsApp: "07700 900777", description: "Maintain the entrance Check-In Kiosk tablet, Jama'ah timetables, and digital portal." },
+      ]
+    };
+
+    function LicLogo({ showText = true, size = "md" }) {
+      const renderDome = (cx, baseY) => {
+        const topY = baseY - 44;
+        return (
+          <path
+            key={cx}
+            d={`M ${cx} ${topY} C ${cx + 4} ${topY + 10}, ${cx + 18} ${topY + 16}, ${cx + 25} ${topY + 26} C ${cx + 29} ${topY + 32}, ${cx + 29} ${baseY - 4}, ${cx + 27} ${baseY} L ${cx - 27} ${baseY} C ${cx - 29} ${baseY - 4}, ${cx - 29} ${topY + 32}, ${cx - 25} ${topY + 26} C ${cx - 18} ${topY + 16}, ${cx - 4} ${topY + 10}, ${cx} ${topY} Z`}
+            fill="#009FE3"
+          />
+        );
+      };
+      const hClass = size === "lg" ? "h-24" : size === "sm" ? "h-10" : "h-14";
+      return (
+        <svg viewBox={showText ? "20 8 368 272" : "30 8 348 202"} className={`${hClass} w-auto select-none`}>
+          {renderDome(68, 98)}
+          {renderDome(136, 58)}
+          {renderDome(204, 98)}
+          {renderDome(272, 58)}
+          {renderDome(340, 98)}
+          <g fill="#005A9C">
+            <rect x="40" y="104" width="56" height="22" />
+            <rect x="40" y="104" width="22" height="100" />
+            <rect x="74" y="104" width="22" height="66" />
+            <rect x="62" y="148" width="34" height="22" />
+            <rect x="40" y="182" width="158" height="22" />
+            <rect x="108" y="64" width="56" height="22" />
+            <rect x="108" y="64" width="22" height="72" />
+            <rect x="142" y="96" width="22" height="74" />
+            <rect x="108" y="148" width="158" height="22" />
+            <rect x="176" y="104" width="22" height="66" />
+            <rect x="210" y="104" width="22" height="66" />
+            <rect x="244" y="104" width="22" height="66" />
+            <rect x="244" y="64" width="56" height="22" />
+            <rect x="278" y="64" width="22" height="72" />
+            <rect x="312" y="104" width="22" height="66" />
+            <rect x="278" y="148" width="56" height="22" />
+            <rect x="346" y="104" width="22" height="100" />
+            <rect x="210" y="182" width="158" height="22" />
+          </g>
+          {showText && (
+            <g fill="#009FE3">
+              <text x="204" y="241" textAnchor="middle" fontWeight="800" fontSize="31" letterSpacing="1.2">LANGLEY ISLAMIC</text>
+              <text x="204" y="273" textAnchor="middle" fontWeight="800" fontSize="31" letterSpacing="1.5">CENTRE</text>
+            </g>
+          )}
+        </svg>
+      );
+    }
+
+    function App() {
+      const [route, setRoute] = useState("/home");
+      const [db, setDb] = useState(() => {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          return saved ? JSON.parse(saved) : INITIAL_SEED;
+        } catch {
+          return INITIAL_SEED;
+        }
+      });
+
+      // Kiosk State
+      const [kioskName, setKioskName] = useState("");
+      const [kioskMode, setKioskMode] = useState(null);
+      const [kioskOccupants, setKioskOccupants] = useState(2);
+      const [kioskActivity, setKioskActivity] = useState(detectCurrentActivity());
+      const [kioskSuccess, setKioskSuccess] = useState(null);
+      const [kioskCountdown, setKioskCountdown] = useState(4);
+
+      // Volunteer Claim State
+      const [claimId, setClaimId] = useState(null);
+      const [volName, setVolName] = useState("");
+      const [volWhatsApp, setVolWhatsApp] = useState("");
+
+      const updateDb = (updater) => {
+        setDb((prev) => {
+          const next = updater(prev);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+      };
+
+      useEffect(() => {
+        if (!kioskSuccess) return;
+        setKioskCountdown(4);
+        const t = setInterval(() => {
+          setKioskCountdown((c) => {
+            if (c <= 1) {
+              clearInterval(t);
+              setKioskSuccess(null);
+              setKioskName("");
+              setKioskMode(null);
+              setKioskOccupants(2);
+              return 4;
+            }
+            return c - 1;
+          });
+        }, 1000);
+        return () => clearInterval(t);
+      }, [kioskSuccess]);
+
+      const count = db.occupancy.currentCount;
+      const isRed = count >= 37;
+      const isAmber = count >= 30 && count <= 36;
+
+      const navItems = [
+        { id: "/home", label: "Portal Home" },
+        { id: "/kiosk", label: "1. Kiosk (/kiosk)" },
+        { id: "/occupancy", label: "2. Occupancy (/occupancy)" },
+        { id: "/mentoring", label: "3. Mentoring (/mentoring)" },
+        { id: "/quran-classes", label: "4. Quran Classes (/quran-classes)" },
+        { id: "/events", label: "5. Event Slots (/events)" },
+        { id: "/carpool", label: "6. SL3 Car-Share (/carpool)" },
+        { id: "/parking", label: "7. Parking Map (/parking)" },
+        { id: "/neighbour-log", label: "8. Neighbour Log (/neighbour-log)" },
+        { id: "/assistant", label: "9. AI & Prayer (/assistant)" },
+        { id: "/volunteer", label: "10. Volunteer (/volunteer)" },
+      ];
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          {/* Top Navigation Bar */}
+          <header className="bg-white border-b-2 border-[#D0E6F7] sticky top-0 z-40 shadow-sm">
+            <div className="bg-[#005A9C] text-white text-xs py-1.5 px-4 flex flex-wrap justify-between items-center">
+              <span><strong>Langley Islamic Centre (LIC)</strong> • Spitfire Close, Langley (SL3) • Jummah & Eid Off-Site at Langley Pavilion</span>
+              <span className={`px-2.5 py-0.5 rounded-full font-extrabold ${isRed ? "bg-red-600" : isAmber ? "bg-amber-500 text-slate-950" : "bg-emerald-600"}`}>
+                Live Occupancy: {count} / 40
+              </span>
+            </div>
+            <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+              <div onClick={() => setRoute("/home")} className="flex items-center gap-3 cursor-pointer">
+                <LicLogo showText={false} size="sm" />
+                <div>
+                  <div className="font-black text-[#005A9C] text-sm sm:text-base">LANGLEY ISLAMIC CENTRE</div>
+                  <div className="text-[11px] font-bold text-[#009FE3]">All 10 Core Modules • Interactive Preview</div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setRoute(item.id)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                      route === item.id ? "bg-[#005A9C] text-white" : "bg-[#F0F7FC] text-[#005A9C] hover:bg-[#D0E6F7]"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-7xl w-full mx-auto px-4 py-6 flex-1">
+            {route === "/home" && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-3xl border-2 border-[#D0E6F7] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="flex items-center gap-5">
+                    <div className="p-4 bg-[#F0F7FC] rounded-2xl border border-[#D0E6F7]">
+                      <LicLogo showText={true} size="lg" />
+                    </div>
+                    <div className="space-y-2 max-w-xl">
+                      <h1 className="text-2xl sm:text-3xl font-black text-[#005A9C]">Langley Islamic Centre Digital Portal</h1>
+                      <p className="text-sm text-slate-600">Select any of the 10 core modules below or in the top bar. All modules share live real-time state.</p>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <button onClick={() => setRoute("/kiosk")} className="px-4 py-2.5 rounded-xl bg-[#005A9C] text-white font-bold text-xs">Open Visitor Kiosk (/kiosk)</button>
+                        <button onClick={() => setRoute("/parking")} className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs">Parking Map (/parking)</button>
+                        <button onClick={() => setRoute("/volunteer")} className="px-4 py-2.5 rounded-xl bg-[#009FE3] text-white font-bold text-xs">Pick-a-Task (/volunteer)</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`p-6 rounded-2xl border-2 text-center min-w-[240px] ${isRed ? "bg-red-50 border-red-500 text-red-900" : isAmber ? "bg-amber-50 border-amber-500 text-amber-900" : "bg-emerald-50 border-emerald-500 text-emerald-900"}`}>
+                    <div className="text-xs font-extrabold uppercase">{isRed ? "Red: Overflow Protocol" : isAmber ? "Amber: Approaching Cap" : "Green: Safe Capacity"}</div>
+                    <div className="text-5xl font-black my-2">{count} / 40</div>
+                    <div className="text-xs font-bold">Strict 40-Person Limit</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {navItems.slice(1).map((m, idx) => (
+                    <div key={m.id} onClick={() => setRoute(m.id)} className="cursor-pointer bg-white rounded-2xl border-2 border-[#D0E6F7] hover:border-[#009FE3] p-5 shadow-sm transition">
+                      <div className="text-xs font-black text-[#009FE3] mb-1">MODULE {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}</div>
+                      <h3 className="text-base font-extrabold text-[#005A9C]">{m.label}</h3>
+                      <p className="text-xs text-slate-500 mt-2 font-semibold">Click to open interactive module →</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {route === "/kiosk" && (
+              <div className="max-w-4xl mx-auto bg-white rounded-3xl border-2 border-[#D0E6F7] p-6 sm:p-8 shadow-lg space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-black text-[#005A9C]">1. Production Visitor Check-In Kiosk (/kiosk)</h2>
+                    <p className="text-xs font-bold text-[#009FE3]">Dedicated Wall-Mounted Tablet • 4-Second Auto-Reset • Increments Live Occupancy</p>
+                  </div>
+                  <div className="px-4 py-2 rounded-xl bg-[#005A9C] text-white font-black text-sm">
+                    Live: {count} / 40
+                  </div>
+                </div>
+
+                {kioskSuccess ? (
+                  <div className="p-8 rounded-2xl bg-emerald-50 border-4 border-emerald-500 text-center space-y-4">
+                    <div className="text-3xl font-black text-[#005A9C]">Assalamu Alaikum, {kioskSuccess.name}!</div>
+                    <p className="text-sm font-bold text-emerald-900">Checked in for {kioskSuccess.activity} via {kioskSuccess.mode}. Live Occupancy is now {kioskSuccess.newCount} / 40.</p>
+                    <div className="text-xs font-extrabold text-slate-600">Auto-resetting screen in {kioskCountdown} seconds...</div>
+                  </div>
+                ) : (
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!kioskName.trim() || !kioskMode || count >= 40) return;
+                    const nextCount = Math.min(40, count + 1);
+                    updateDb((prev) => ({
+                      ...prev,
+                      occupancy: { ...prev.occupancy, currentCount: nextCount, peakToday: Math.max(prev.occupancy.peakToday, nextCount) },
+                      checkIns: [{ id: `chk-${Date.now()}`, visitorName: kioskName, travelMode: kioskMode, occupantCount: kioskMode === "Car Share" ? kioskOccupants : 1, activity: kioskActivity, timestamp: new Date().toISOString() }, ...prev.checkIns]
+                    }));
+                    setKioskSuccess({ name: kioskName, mode: kioskMode, activity: kioskActivity, newCount: nextCount });
+                  }} className="space-y-5">
+                    <div>
+                      <label className="block text-sm font-extrabold text-[#005A9C] mb-2">1. Visitor Name (Tap Frequent Regular Chip or Type):</label>
+                      <input type="text" required value={kioskName} onChange={(e) => setKioskName(e.target.value)} placeholder="Tap chip below or type name..." className="w-full h-12 px-4 rounded-xl border-2 border-[#D0E6F7] font-bold text-[#005A9C]" />
+                      <div className="flex flex-wrap gap-2 mt-2.5">
+                        {db.frequentVisitors.map((n) => (
+                          <button key={n} type="button" onClick={() => setKioskName(n)} className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${kioskName === n ? "bg-[#005A9C] text-white" : "bg-[#F0F7FC] text-[#005A9C] border-[#D0E6F7]"}`}>{n}</button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-extrabold text-[#005A9C] mb-2">2. Mode of Travel:</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {["Walking", "Bicycle", "Car Share", "Car / Drive"].map((m) => (
+                          <button key={m} type="button" onClick={() => setKioskMode(m)} className={`p-4 rounded-xl font-extrabold text-sm border-2 ${kioskMode === m ? "bg-[#005A9C] text-white border-[#005A9C]" : "bg-[#F0F7FC] text-[#005A9C] border-[#D0E6F7]"}`}>{m}</button>
+                        ))}
+                      </div>
+                      {kioskMode === "Car Share" && (
+                        <div className="mt-3 p-4 rounded-xl bg-[#F0F7FC] border-2 border-[#009FE3] flex items-center justify-between">
+                          <span className="text-xs font-extrabold text-[#005A9C]">Vehicle Occupant Count (Car Share):</span>
+                          <div className="flex gap-2">
+                            {[2, 3, 4].map((n) => (
+                              <button key={n} type="button" onClick={() => setKioskOccupants(n)} className={`px-4 py-2 rounded-lg font-black text-sm ${kioskOccupants === n ? "bg-[#005A9C] text-white" : "bg-white text-[#005A9C] border"}`}>{n === 4 ? "4+" : n}</button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-extrabold text-[#005A9C] mb-2">3. Auto-Detected Salah / Activity:</label>
+                      <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                        {["Fajr", "Zuhar", "Asr", "Maghrib", "Isha", "Quran Class", "Youth Circle", "Other"].map((act) => (
+                          <button key={act} type="button" onClick={() => setKioskActivity(act)} className={`py-2.5 px-2 rounded-xl text-xs font-bold border ${kioskActivity === act ? "bg-[#009FE3] text-white" : "bg-[#F0F7FC] text-[#005A9C]"}`}>{act}</button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button type="submit" disabled={!kioskName || !kioskMode || count >= 40} className="w-full h-14 rounded-2xl bg-[#005A9C] disabled:bg-slate-300 text-white font-black text-lg">
+                      TAP TO CHECK IN (+1 LIVE OCCUPANCY)
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
+
+            {route === "/occupancy" && (
+              <div className="max-w-4xl mx-auto space-y-6">
+                <div className={`p-6 rounded-2xl font-black text-white ${isRed ? "bg-red-600" : isAmber ? "bg-amber-500 text-slate-950" : "bg-emerald-600"}`}>
+                  <div className="text-xs uppercase">Status Banner</div>
+                  <div className="text-xl mt-1">
+                    {isRed ? "RED (37–40): AT CAPACITY — ACTIVATE OVERFLOW PROTOCOL" : isAmber ? "AMBER (30–36): APPROACHING CAPACITY" : "GREEN (0–29): SAFE CAPACITY LEVEL"}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-3xl border-2 border-[#D0E6F7] p-8 text-center space-y-6">
+                  <div className="text-xs font-extrabold uppercase text-slate-500">Live 40-Person Occupancy & Door Marshal Counter</div>
+                  <div className="text-7xl font-black text-[#005A9C]">Current: {count} / 40</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <button onClick={() => updateDb((p) => ({ ...p, occupancy: { ...p.occupancy, currentCount: Math.min(40, p.occupancy.currentCount + 1) } }))} className="h-16 rounded-2xl bg-[#005A9C] text-white font-black text-lg">+1 Visitor Entry</button>
+                    <button onClick={() => updateDb((p) => ({ ...p, occupancy: { ...p.occupancy, currentCount: Math.max(0, p.occupancy.currentCount - 1) } }))} className="h-16 rounded-2xl bg-[#009FE3] text-white font-black text-lg">-1 Visitor Exit</button>
+                    <button onClick={() => updateDb((p) => ({ ...p, occupancy: { ...p.occupancy, currentCount: 0 } }))} className="h-16 rounded-2xl bg-red-100 text-red-800 font-black text-sm">Reset Session (0/40)</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {route === "/assistant" && (
+              <div className="bg-white rounded-3xl border-2 border-[#D0E6F7] p-6 sm:p-8 space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-black text-[#005A9C]">9. 24/7 AI Community Assistant & Live Prayer Times (/assistant)</h2>
+                    <p className="text-xs font-bold text-[#009FE3]">Grounded strictly in LIC official information</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setRoute("/kiosk")} className="px-3 py-1.5 rounded-lg bg-[#005A9C] text-white text-xs font-bold">/kiosk</button>
+                    <button onClick={() => setRoute("/parking")} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold">/parking</button>
+                    <button onClick={() => setRoute("/volunteer")} className="px-3 py-1.5 rounded-lg bg-[#009FE3] text-white text-xs font-bold">/volunteer</button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  {PRAYER_TIMETABLE.map((p) => (
+                    <div key={p.name} className="p-4 rounded-2xl bg-[#005A9C] text-white text-center">
+                      <div className="text-xs font-bold text-[#7FD4FF]">{p.name}</div>
+                      <div className="text-2xl font-black my-1">{p.jamaat}</div>
+                      <div className="text-[11px] opacity-80">Adhan: {p.adhan}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-5 rounded-2xl bg-amber-50 border-2 border-amber-500 space-y-1">
+                    <div className="text-xs font-black uppercase text-amber-900">Off-Site Friday Jummah & Eid Prayers</div>
+                    <div className="font-black text-amber-950 text-base">Langley Pavilion (NOT Held at Spitfire Close)</div>
+                    <p className="text-xs text-amber-900">Friday Jummah and Eid prayers take place off-site at Langley Pavilion to protect Spitfire Close and respect our 40-person cap.</p>
+                  </div>
+                  <div className="p-5 rounded-2xl bg-[#F0F7FC] border-2 border-[#009FE3] space-y-1">
+                    <div className="text-xs font-black uppercase text-[#009FE3]">Sisters' Quran Class</div>
+                    <div className="font-black text-[#005A9C] text-base">Wednesdays 13:30–14:30</div>
+                    <p className="text-xs text-slate-600">Weekly Sisters' Quran & Tafsir session at Spitfire Close (capped within 40-person limit).</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {route === "/volunteer" && (
+              <div className="bg-white rounded-3xl border-2 border-[#D0E6F7] p-6 sm:p-8 space-y-6">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black text-[#005A9C]">10. Flexible Volunteer "Pick-a-Task" Scheduler (/volunteer)</h2>
+                  <p className="text-xs text-slate-600">Self-serve micro-volunteering board with 1-tap Claim Shift (Name & WhatsApp) and 1-tap Release Shift.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(db.volunteerTasks || INITIAL_SEED.volunteerTasks).map((t) => (
+                    <div key={t.id} className={`p-5 rounded-2xl border-2 space-y-3 ${t.status === "Claimed" ? "bg-emerald-50 border-emerald-400" : "bg-[#F0F7FC] border-[#D0E6F7]"}`}>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-extrabold text-[#009FE3]">{t.scheduleLabel}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${t.status === "Claimed" ? "bg-emerald-200 text-emerald-900" : "bg-sky-100 text-[#005A9C]"}`}>{t.status}</span>
+                      </div>
+                      <div className="font-black text-[#005A9C] text-lg">{t.title}</div>
+                      <p className="text-xs text-slate-600">{t.description}</p>
+
+                      {t.status === "Claimed" ? (
+                        <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
+                          <span className="text-xs font-bold text-emerald-900">Claimed by: {t.claimedByName} ({t.claimedByWhatsApp})</span>
+                          <button onClick={() => updateDb((prev) => ({
+                            ...prev,
+                            volunteerTasks: prev.volunteerTasks.map((x) => x.id === t.id ? { ...x, status: "Open", claimedByName: undefined, claimedByWhatsApp: undefined } : x)
+                          }))} className="px-3 py-1.5 rounded-lg bg-white border border-red-300 text-red-700 font-bold text-xs">
+                            Release Shift
+                          </button>
+                        </div>
+                      ) : claimId === t.id ? (
+                        <form onSubmit={(e) => {
+                          e.preventDefault();
+                          if (!volName || !volWhatsApp) return;
+                          updateDb((prev) => ({
+                            ...prev,
+                            volunteerTasks: prev.volunteerTasks.map((x) => x.id === t.id ? { ...x, status: "Claimed", claimedByName: volName, claimedByWhatsApp: volWhatsApp } : x)
+                          }));
+                          setClaimId(null);
+                          setVolName("");
+                          setVolWhatsApp("");
+                        }} className="space-y-2 pt-2">
+                          <input type="text" required value={volName} onChange={(e) => setVolName(e.target.value)} placeholder="Your Name *" className="w-full px-3 py-2 rounded-lg border text-xs bg-white" />
+                          <input type="tel" required value={volWhatsApp} onChange={(e) => setVolWhatsApp(e.target.value)} placeholder="WhatsApp Number *" className="w-full px-3 py-2 rounded-lg border text-xs bg-white" />
+                          <div className="flex gap-2">
+                            <button type="submit" className="px-4 py-2 rounded-lg bg-[#005A9C] text-white font-bold text-xs">Confirm Claim</button>
+                            <button type="button" onClick={() => setClaimId(null)} className="px-3 py-2 rounded-lg bg-white border text-xs font-bold">Cancel</button>
+                          </div>
+                        </form>
+                      ) : (
+                        <button onClick={() => setClaimId(t.id)} className="w-full py-2.5 rounded-xl bg-[#005A9C] text-white font-black text-xs">
+                          Claim Shift (Name & WhatsApp)
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {route !== "/home" && route !== "/kiosk" && route !== "/occupancy" && route !== "/assistant" && route !== "/volunteer" && (
+              <div className="bg-white rounded-3xl border-2 border-[#D0E6F7] p-6 sm:p-8 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl sm:text-2xl font-black text-[#005A9C]">
+                    Active Route: <code className="text-[#009FE3]">{route}</code>
+                  </h2>
+                  <span className="text-xs font-bold bg-[#F0F7FC] text-[#005A9C] px-3 py-1.5 rounded-lg border border-[#D0E6F7]">
+                    Full Next.js Source in <code>src/app{route}/page.tsx</code>
+                  </span>
+                </div>
+
+                {route === "/mentoring" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    {db.mentors.map((m) => (
+                      <div key={m.id} className="p-5 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-xs font-extrabold text-[#009FE3]">{m.sector}</span>
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">✓ DBS Verified ({m.dbsCertRef})</span>
+                        </div>
+                        <div className="font-black text-[#005A9C] text-lg">{m.name}</div>
+                        <div className="text-xs text-slate-600">{m.role} • {m.availability}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {route === "/quran-classes" && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                    {db.quranSessions.map((s) => {
+                      const enrolled = db.quranStudents.filter((st) => st.sessionId === s.id).length;
+                      return (
+                        <div key={s.id} className="p-5 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] space-y-2">
+                          <div className="flex justify-between">
+                            <span className="font-black text-[#009FE3] text-xs">{s.timeWindow}</span>
+                            <span className="font-black text-xs text-[#005A9C]">{enrolled} / 10 Students</span>
+                          </div>
+                          <div className="font-extrabold text-[#005A9C]">{s.title}</div>
+                          <button onClick={() => alert(`5-Minute Pickup SMS/WhatsApp Alert Dispatched for ${s.timeWindow}!`)} className="w-full py-2 rounded-xl bg-[#005A9C] text-white font-bold text-xs">
+                            Send Pickup Alert ({s.pickupAlertTime})
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {route === "/events" && (
+                  <div className="space-y-4 pt-2">
+                    {db.events.map((e) => (
+                      <div key={e.id} className="p-5 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] space-y-3">
+                        <div className="font-black text-[#005A9C] text-lg">{e.title} ({e.date})</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {e.slots.map((sl) => (
+                            <div key={sl.id} className={`p-3.5 rounded-xl border ${sl.bookedCount >= sl.maxCapacity ? "bg-red-50 border-red-300 text-red-900" : "bg-white border-[#D0E6F7]"}`}>
+                              <div className="font-bold text-xs">{sl.timeWindow}</div>
+                              <div className="font-black text-sm mt-1">{sl.bookedCount} / {sl.maxCapacity} {sl.bookedCount >= sl.maxCapacity ? "(FULL - LOCKED)" : "Booked"}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {route === "/carpool" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    {db.carpoolMembers.map((cp) => (
+                      <div key={cp.id} className="p-5 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] space-y-2">
+                        <div className="flex justify-between">
+                          <span className="px-2.5 py-0.5 rounded bg-[#005A9C] text-white font-bold text-xs">{cp.role} • {cp.sector}</span>
+                          <span className="text-xs font-bold text-slate-600">{cp.accepted ? `Unlocked: ${cp.privatePhone}` : "Phone Hidden (07700 ••••••)"}</span>
+                        </div>
+                        <div className="font-black text-[#005A9C]">{cp.name}</div>
+                        <div className="text-xs text-slate-600">{cp.notes}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {route === "/parking" && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                    <div className="p-5 rounded-2xl bg-red-50 border-2 border-red-500 space-y-2">
+                      <div className="font-black text-red-800 text-xs uppercase">Strictly No Parking (Red)</div>
+                      <div className="font-black text-red-950">Spitfire Close Turning Head & Residential Bays</div>
+                      <p className="text-xs text-red-900">Zero visitor parking, waiting, or idling at any time.</p>
+                    </div>
+                    <div className="p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-500 space-y-2">
+                      <div className="font-black text-emerald-800 text-xs uppercase">Permitted Parking (Green)</div>
+                      <div className="font-black text-emerald-950">Common Road (2–3m) & Harrow Market (4–5m)</div>
+                      <div className="flex flex-col gap-2 pt-1">
+                        <a href="https://www.google.com/maps/search/?api=1&query=Common+Road+Langley+Slough+SL3+8J" target="_blank" className="py-2 px-3 rounded-lg bg-emerald-600 text-white font-bold text-xs text-center">Open Common Rd in Google Maps</a>
+                        <a href="https://www.google.com/maps/search/?api=1&query=Harrow+Market+Car+Park+Langley+SL3+8HJ" target="_blank" className="py-2 px-3 rounded-lg bg-[#005A9C] text-white font-bold text-xs text-center">Open Harrow Market in Google Maps</a>
+                      </div>
+                    </div>
+                    <div className="p-5 rounded-2xl bg-[#F0F7FC] border-2 border-[#009FE3] space-y-2">
+                      <div className="font-black text-[#005A9C] text-xs uppercase">Active Travel (Blue)</div>
+                      <div className="font-black text-[#005A9C]">On-Site Cycle Rack & SL3 Bus Stops</div>
+                      <p className="text-xs text-slate-600">Covered cycle spaces at Spitfire Close entrance and nearby SL3 bus routes.</p>
+                    </div>
+                  </div>
+                )}
+
+                {route === "/neighbour-log" && (
+                  <div className="space-y-4 pt-2">
+                    {db.neighbourIncidents.map((inc) => (
+                      <div key={inc.id} className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] space-y-1">
+                        <div className="flex justify-between">
+                          <span className="font-mono font-black text-xs text-[#005A9C]">{inc.ticketId} — {inc.category}</span>
+                          <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-xs">{inc.status}</span>
+                        </div>
+                        <p className="text-xs text-slate-700">{inc.description}</p>
+                        <p className="text-[11px] text-slate-500">Assigned: {inc.assignedLead} • Audit Note: {inc.investigationNotes}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
