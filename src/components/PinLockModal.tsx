@@ -27,18 +27,31 @@ export const PinGate: React.FC<PinGateProps> = ({
 
   const requiredPin = state.adminPin || "2580";
 
-  const handleDigit = (digit: string) => {
+  const handleDigit = async (digit: string) => {
     setError(false);
     if (pin.length < 4) {
       const next = pin + digit;
       setPin(next);
       if (next.length === 4) {
-        if (next === requiredPin) {
-          setUnlocked(true);
-        } else {
-          setError(true);
-          setTimeout(() => setPin(""), 450);
+        try {
+          const res = await fetch("/api/verify-pin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pin: next }),
+          });
+          const data = (await res.json()) as { ok?: boolean };
+          if (data.ok || next === requiredPin) {
+            setUnlocked(true);
+            return;
+          }
+        } catch {
+          if (next === requiredPin) {
+            setUnlocked(true);
+            return;
+          }
         }
+        setError(true);
+        setTimeout(() => setPin(""), 450);
       }
     }
   };

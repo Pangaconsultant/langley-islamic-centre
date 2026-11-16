@@ -84,7 +84,8 @@ export function generateAssistantReply(
     q.includes("asr") ||
     q.includes("time")
   ) {
-    const timesList = PRAYER_TIMETABLE.map(
+    const activeTimetable = state.prayerTimetable || PRAYER_TIMETABLE;
+    const timesList = activeTimetable.map(
       (p) => `${p.name}: Adhan ${p.adhan} / Jama'ah ${p.jamaat}`
     ).join(" • ");
     return {

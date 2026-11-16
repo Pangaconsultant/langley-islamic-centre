@@ -186,7 +186,7 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {PRAYER_TIMETABLE.map((p) => {
+          {(state.prayerTimetable || PRAYER_TIMETABLE).map((p) => {
             const isCurrent = p.name === activeSessionName;
             return (
               <div

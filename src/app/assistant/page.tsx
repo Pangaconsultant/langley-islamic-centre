@@ -127,7 +127,7 @@ export default function AssistantAndPrayerTimesPage() {
             </div>
 
             <div className="space-y-2">
-              {PRAYER_TIMETABLE.map((p) => {
+              {(state.prayerTimetable || PRAYER_TIMETABLE).map((p) => {
                 const isActive = p.name === state.occupancy.activeSessionName;
                 return (
                   <div

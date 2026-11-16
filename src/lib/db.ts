@@ -206,8 +206,16 @@ export interface VolunteerTask {
   claimedAt?: string;
 }
 
+export interface PrayerTimeEntry {
+  name: "Fajr" | "Zuhar" | "Asr" | "Maghrib" | "Isha";
+  adhan: string;
+  jamaat: string;
+  icon: string;
+}
+
 export interface LicDatabaseState {
   adminPin: string; // Confidential 4-digit PIN (never displayed publicly, resettable only inside Admin)
+  prayerTimetable: PrayerTimeEntry[];
   occupancy: OccupancyState;
   checkIns: VisitorCheckIn[];
   frequentVisitors: string[];
@@ -240,7 +248,7 @@ export function detectCurrentActivity(date = new Date()): ActivityType {
   return "Isha";
 }
 
-export const PRAYER_TIMETABLE = [
+export const PRAYER_TIMETABLE: PrayerTimeEntry[] = [
   { name: "Fajr", adhan: "05:45", jamaat: "06:15", icon: "Sunrise" },
   { name: "Zuhar", adhan: "12:15", jamaat: "12:45", icon: "Sun" },
   { name: "Asr", adhan: "14:30", jamaat: "15:00", icon: "CloudSun" },
@@ -256,6 +264,7 @@ const DEFAULT_ENV_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN || "2580";
 
 const INITIAL_SEED_STATE: LicDatabaseState = {
   adminPin: DEFAULT_ENV_PIN,
+  prayerTimetable: PRAYER_TIMETABLE,
   occupancy: {
     currentCount: 18,
     maxCapacity: 40,
@@ -840,6 +849,9 @@ export function getDbState(): LicDatabaseState {
     }
     const parsed = JSON.parse(raw) as LicDatabaseState;
     if (!parsed.volunteerTasks) parsed.volunteerTasks = INITIAL_SEED_STATE.volunteerTasks;
+    if (!parsed.prayerTimetable || parsed.prayerTimetable.length === 0) {
+      parsed.prayerTimetable = PRAYER_TIMETABLE;
+    }
     if (!parsed.adminPin) parsed.adminPin = DEFAULT_ENV_PIN;
     return parsed;
   } catch {
@@ -881,17 +893,39 @@ export function useLicStore() {
     setState(getDbState());
     setHydrated(true);
 
-    // Sync from live Supabase PostgreSQL database on mount and every 4 seconds
+    // Smart Quota-Friendly Supabase Sync:
+    // Fetches once on mount, when tab regains visibility/focus, and only polls every 20s on /occupancy
     let active = true;
     const syncCloud = async () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
       const cloud = await fetchStateFromSupabase();
       if (active && cloud) {
+        if (!cloud.prayerTimetable || cloud.prayerTimetable.length === 0) {
+          cloud.prayerTimetable = PRAYER_TIMETABLE;
+        }
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cloud));
         setState(cloud);
       }
     };
     void syncCloud();
-    const pollInterval = setInterval(syncCloud, 4000);
+
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        void syncCloud();
+      }
+    };
+    window.addEventListener("focus", handleVisibilityOrFocus);
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+
+    const isLiveCounterRoute =
+      typeof window !== "undefined" &&
+      (window.location.pathname === "/occupancy" ||
+        window.location.pathname === "/kiosk");
+    const pollInterval = isLiveCounterRoute
+      ? setInterval(syncCloud, 20000)
+      : null;
 
     const handleCustomUpdate = (e: Event) => {
       const customEvent = e as CustomEvent<LicDatabaseState>;
@@ -923,7 +957,9 @@ export function useLicStore() {
 
     return () => {
       active = false;
-      clearInterval(pollInterval);
+      if (pollInterval) clearInterval(pollInterval);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
       window.removeEventListener("lic-db-updated", handleCustomUpdate);
       window.removeEventListener("storage", handleStorage);
       if (bc) bc.close();
@@ -951,6 +987,109 @@ export function useLicStore() {
     },
     [mutate]
   );
+
+  // Prayer Timetable CMS & UK Location Auto-Sync (Spitfire Close, Langley SL3 8GY: 51.5008° N, -0.5469° W)
+  const updatePrayerTimetable = useCallback(
+    (nextTimetable: PrayerTimeEntry[]) => {
+      mutate((prev) => ({
+        ...prev,
+        prayerTimetable: nextTimetable,
+      }));
+    },
+    [mutate]
+  );
+
+  const syncUkLangleyPrayerTimes = useCallback(async (): Promise<{
+    ok: boolean;
+    message: string;
+  }> => {
+    try {
+      // Open-source AlAdhan UK API (github.com/islamic-network/api.aladhan.com)
+      // Method 15 = Moonsighting Committee Worldwide (UK High-Latitude Standard)
+      // Coordinates: Spitfire Close, Langley, Slough SL3 8GY (51.5008, -0.5469)
+      const res = await fetch(
+        "https://api.aladhan.com/v1/timings?latitude=51.5008&longitude=-0.5469&method=15&school=1"
+      );
+      if (!res.ok) {
+        return {
+          ok: false,
+          message: "Could not reach UK Prayer Timetable API. Please check your connection.",
+        };
+      }
+      const json = await res.json();
+      const timings = json?.data?.timings;
+      if (!timings) {
+        return { ok: false, message: "Invalid response from UK Timetable API." };
+      }
+
+      const cleanTime = (raw: string) => (raw || "").split(" ")[0].slice(0, 5);
+      const addMinutes = (hhmm: string, minsToAdd: number) => {
+        const [h, m] = hhmm.split(":").map(Number);
+        if (isNaN(h) || isNaN(m)) return hhmm;
+        const total = (h * 60 + m + minsToAdd + 1440) % 1440;
+        const nh = String(Math.floor(total / 60)).padStart(2, "0");
+        const nm = String(total % 60).padStart(2, "0");
+        return `${nh}:${nm}`;
+      };
+
+      const fajrAdhan = cleanTime(timings.Fajr);
+      const zuharAdhan = cleanTime(timings.Dhuhr);
+      const asrAdhan = cleanTime(timings.Asr);
+      const maghribAdhan = cleanTime(timings.Maghrib);
+      const ishaAdhan = cleanTime(timings.Isha);
+
+      mutate((prev) => {
+        const current = prev.prayerTimetable || PRAYER_TIMETABLE;
+        const updated: PrayerTimeEntry[] = [
+          {
+            name: "Fajr",
+            adhan: fajrAdhan || current[0].adhan,
+            jamaat: current[0].jamaat,
+            icon: "Sunrise",
+          },
+          {
+            name: "Zuhar",
+            adhan: zuharAdhan || current[1].adhan,
+            jamaat: current[1].jamaat,
+            icon: "Sun",
+          },
+          {
+            name: "Asr",
+            adhan: asrAdhan || current[2].adhan,
+            jamaat: current[2].jamaat,
+            icon: "CloudSun",
+          },
+          {
+            name: "Maghrib",
+            adhan: maghribAdhan || current[3].adhan,
+            // Maghrib Jama'ah automatically tracks sunset + 5 mins
+            jamaat: maghribAdhan ? addMinutes(maghribAdhan, 5) : current[3].jamaat,
+            icon: "Sunset",
+          },
+          {
+            name: "Isha",
+            adhan: ishaAdhan || current[4].adhan,
+            jamaat: current[4].jamaat,
+            icon: "Moon",
+          },
+        ];
+        return {
+          ...prev,
+          prayerTimetable: updated,
+        };
+      });
+
+      return {
+        ok: true,
+        message: `Synced today's UK Adhan times for Langley SL3 (51.5008°N, -0.5469°W • Moonsighting Committee UK) & set Maghrib Jama'ah to ${addMinutes(maghribAdhan, 5)}.`,
+      };
+    } catch {
+      return {
+        ok: false,
+        message: "Failed to fetch UK prayer times.",
+      };
+    }
+  }, [mutate]);
 
   // 1. Visitor Kiosk Check-In Action
   const recordVisitorCheckIn = useCallback(
@@ -1484,6 +1623,8 @@ export function useLicStore() {
     state,
     hydrated,
     updateAdminPin,
+    updatePrayerTimetable,
+    syncUkLangleyPrayerTimes,
     recordVisitorCheckIn,
     addFrequentVisitor,
     removeFrequentVisitor,

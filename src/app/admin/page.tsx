@@ -29,6 +29,7 @@ import {
   VolunteerTimeWindow,
   MentorSector,
   CommunityEvent,
+  PRAYER_TIMETABLE,
 } from "@/lib/db";
 import { PinGate } from "@/components/PinLockModal";
 
@@ -43,6 +44,8 @@ export default function TrusteeAdminCompliancePage() {
   const {
     state,
     updateAdminPin,
+    updatePrayerTimetable,
+    syncUkLangleyPrayerTimes,
     addVolunteerTask,
     deleteVolunteerTask,
     releaseVolunteerTask,
@@ -358,7 +361,7 @@ export default function TrusteeAdminCompliancePage() {
               }`}
             >
               <CalendarClock className="w-4 h-4 text-[#009FE3]" />
-              <span>3. Events, Quran &amp; Kiosk CMS</span>
+              <span>3. Prayer Times, Events, Quran &amp; Kiosk CMS</span>
             </button>
 
             <button
@@ -826,10 +829,83 @@ export default function TrusteeAdminCompliancePage() {
           )}
 
           {/* ============================================================== */}
-          {/* TAB 3: EVENTS, QURAN CLASSES & KIOSK REGULARS CMS              */}
+          {/* TAB 3: PRAYER TIMETABLE, EVENTS, QURAN CLASSES & KIOSK CMS     */}
           {/* ============================================================== */}
           {activeTab === "events-kiosk-cms" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div className="space-y-6">
+              {/* Live Prayer Timetable Manager + UK Location Auto-Sync */}
+              <div className="bg-white rounded-3xl border-2 border-[#005A9C] p-6 space-y-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                  <div>
+                    <div className="text-xs font-extrabold uppercase tracking-wider text-[#009FE3]">
+                      Data-Driven UK Timetable • Spitfire Close (51.5008°N, -0.5469°W)
+                    </div>
+                    <h2 className="text-lg sm:text-xl font-black text-[#005A9C]">
+                      Daily Adhan &amp; Jama&apos;ah Timetable Manager
+                    </h2>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      Edit any Adhan or Jama&apos;ah time below (auto-saves to Supabase), or click <strong>Auto-Sync Today&apos;s UK Adhan Times</strong> to pull exact astronomical times for Langley (SL3 8GY) using the UK Moonsighting Committee method.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const res = await syncUkLangleyPrayerTimes();
+                      notify(res.message);
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-[#009FE3] hover:bg-[#005A9C] text-white font-black text-xs inline-flex items-center gap-2 shadow-sm transition shrink-0"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Auto-Sync Today&apos;s Langley (SL3) UK Adhan Times</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                  {(state.prayerTimetable || PRAYER_TIMETABLE).map((p, idx) => (
+                    <div
+                      key={p.name}
+                      className="p-3.5 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] space-y-2.5"
+                    >
+                      <div className="font-black text-sm text-[#005A9C] uppercase tracking-wider">
+                        {p.name}
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-0.5">
+                          Adhan Time (24h)
+                        </label>
+                        <input
+                          type="text"
+                          value={p.adhan}
+                          onChange={(e) => {
+                            const next = [...(state.prayerTimetable || PRAYER_TIMETABLE)];
+                            next[idx] = { ...next[idx], adhan: e.target.value };
+                            updatePrayerTimetable(next);
+                          }}
+                          className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs font-bold text-[#005A9C] bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-[#005A9C] mb-0.5">
+                          Jama&apos;ah Time (24h)
+                        </label>
+                        <input
+                          type="text"
+                          value={p.jamaat}
+                          onChange={(e) => {
+                            const next = [...(state.prayerTimetable || PRAYER_TIMETABLE)];
+                            next[idx] = { ...next[idx], jamaat: e.target.value };
+                            updatePrayerTimetable(next);
+                          }}
+                          className="w-full h-9 px-2.5 rounded-lg border-2 border-[#009FE3] text-xs font-black text-[#005A9C] bg-white"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               {/* Create Event & Manage Events */}
               <div className="bg-white rounded-3xl border-2 border-[#D0E6F7] p-6 space-y-5">
                 <h2 className="text-lg font-black text-[#005A9C] flex items-center gap-2">
@@ -1004,6 +1080,7 @@ export default function TrusteeAdminCompliancePage() {
                     ))}
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           )}
