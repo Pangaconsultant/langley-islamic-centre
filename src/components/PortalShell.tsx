@@ -19,23 +19,129 @@ import {
   X,
   Home,
   Lock,
-  Globe,
   ChevronDown,
 } from "lucide-react";
 import { LicLogo } from "./LicLogo";
 import { useLicStore } from "@/lib/db";
 import { FloatingAssistantWidget } from "./FloatingAssistantWidget";
 
-export const PUBLIC_NAV_MODULES = [
-  { href: "/", label: "Public Home", shortLabel: "Home", icon: Home },
-  { href: "/assistant", label: "Prayer Times & AI Helper", shortLabel: "Prayer & AI", icon: Bot },
-  { href: "/parking", label: "Spitfire Close Parking Map", shortLabel: "Parking Map", icon: MapPin },
-  { href: "/quran-classes", label: "Children's Quran Classes", shortLabel: "Quran Classes", icon: BookOpen },
-  { href: "/mentoring", label: "Youth & Careers Mentoring", shortLabel: "Mentoring", icon: GraduationCap },
-  { href: "/events", label: "Event & Bereavement Slots", shortLabel: "Event Slots", icon: CalendarClock },
-  { href: "/carpool", label: "SL3 Car-Share Matcher", shortLabel: "Car-Share", icon: Car },
-  { href: "/volunteer", label: "Volunteer Pick-a-Task", shortLabel: "Volunteer", icon: HandHeart },
-  { href: "/neighbour-log", label: "Neighbour Liaison Form", shortLabel: "Neighbour Log", icon: ShieldAlert },
+export interface HubNavItem {
+  href: string;
+  label: string;
+  shortLabel: string;
+  sub: string;
+  icon: React.ElementType;
+}
+
+export interface CommunityHub {
+  id: string;
+  title: string;
+  shortTitle: string;
+  defaultHref: string;
+  icon: React.ElementType;
+  items: HubNavItem[];
+}
+
+export const PUBLIC_COMMUNITY_HUBS: CommunityHub[] = [
+  {
+    id: "home-prayer",
+    title: "Home & Prayer Hub",
+    shortTitle: "Prayer & AI Hub",
+    defaultHref: "/assistant",
+    icon: Bot,
+    items: [
+      {
+        href: "/",
+        label: "Community Home & Live Timetable",
+        shortLabel: "Home",
+        sub: "Daily Jama'ah times, live capacity & hub directory",
+        icon: Home,
+      },
+      {
+        href: "/assistant",
+        label: "24/7 AI Assistant & Prayer Times",
+        shortLabel: "Prayer & AI Helper",
+        sub: "Official timetable, Sisters' class & Langley Pavilion Jummah info",
+        icon: Bot,
+      },
+    ],
+  },
+  {
+    id: "travel-hub",
+    title: "Travel & Parking Hub",
+    shortTitle: "Travel Hub",
+    defaultHref: "/parking",
+    icon: MapPin,
+    items: [
+      {
+        href: "/parking",
+        label: "Spitfire Close Parking Schematic",
+        shortLabel: "Parking Map",
+        sub: "Red/Green zones: Mencap, Resident Yard, Harvey Park, Harrow Market & Common Rd",
+        icon: MapPin,
+      },
+      {
+        href: "/carpool",
+        label: "SL3 Community Car-Share Matcher",
+        shortLabel: "SL3 Car-Share",
+        sub: "Privacy-first SL3 ride-sharing by street sector",
+        icon: Car,
+      },
+    ],
+  },
+  {
+    id: "student-hub",
+    title: "Student & Youth Hub",
+    shortTitle: "Student Hub",
+    defaultHref: "/quran-classes",
+    icon: GraduationCap,
+    items: [
+      {
+        href: "/quran-classes",
+        label: "Children's Quran Classes",
+        shortLabel: "Quran Classes",
+        sub: "Staggered 45-min classes (max 10/session) & 5-min pickup alerts",
+        icon: BookOpen,
+      },
+      {
+        href: "/mentoring",
+        label: "Youth & Careers Mentoring Network",
+        shortLabel: "Youth Mentoring",
+        sub: "DBS-verified tutors & career mentors (GCSE, Tech/AI, Medicine, Engineering)",
+        icon: GraduationCap,
+      },
+    ],
+  },
+  {
+    id: "community-hub",
+    title: "Community & Neighbour Hub",
+    shortTitle: "Community Hub",
+    defaultHref: "/events",
+    icon: HandHeart,
+    items: [
+      {
+        href: "/events",
+        label: "Event & Bereavement Slot-Booking",
+        shortLabel: "Event & Condolence Slots",
+        sub: "30-minute staggered arrival slots (capped at 35 visitors)",
+        icon: CalendarClock,
+      },
+      {
+        href: "/volunteer",
+        label: "Volunteer \"Pick-a-Task\" Scheduler",
+        shortLabel: "Volunteer Tasks",
+        sub: "1-tap micro-volunteering shifts (Marshals, Pavilion Setup, AI Support)",
+        icon: HandHeart,
+      },
+      {
+        href: "/neighbour-log",
+        label: "Digital Neighbour Liaison Form",
+        shortLabel: "Neighbour Liaison",
+        sub: "Spitfire Close neighbour feedback & tracked Ticket ID log",
+        icon: ShieldAlert,
+      },
+    ],
+  },
 ];
 
 export const STAFF_ADMIN_MODULES = [
@@ -54,7 +160,7 @@ export const STAFF_ADMIN_MODULES = [
   {
     href: "/admin",
     label: "Admin CMS & SBC Backend",
-    sub: "Manage Tasks, Mentors, Events & PIN",
+    sub: "Manage Timetable, Tasks, Mentors & PIN",
     icon: BarChart3,
   },
 ];
@@ -63,13 +169,13 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
   const pathname = usePathname();
   const { state } = useLicStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [staffMenuOpen, setStaffMenuOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [openHubDropdown, setOpenHubDropdown] = useState<string | null>(null);
+  const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setStaffMenuOpen(false);
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setOpenHubDropdown(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -91,6 +197,14 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
       : "bg-emerald-600 text-white";
 
   const isStaffRoute = STAFF_ADMIN_MODULES.some((m) => m.href === pathname);
+
+  // Detect active Community Hub for the contextual sub-navigation bar
+  const activeHub =
+    pathname === "/"
+      ? null
+      : PUBLIC_COMMUNITY_HUBS.find((hub) =>
+          hub.items.some((i) => i.href === pathname)
+        ) || null;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F0F7FC] text-slate-900">
@@ -114,14 +228,14 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
               className="hidden md:inline-flex items-center gap-1 text-xs text-[#F0F7FC] hover:text-white underline font-medium"
             >
               <MapPin className="w-3.5 h-3.5 text-[#009FE3]" />
-              Spitfire Close Parking Rules
+              Travel &amp; Parking Hub
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Main Header (Public Website Navigation + Staff Admin Access Menu) */}
-      <header className="bg-white border-b border-[#D0E6F7] sticky top-0 z-40 shadow-sm">
+      {/* Main Header (Grouped Hub Navigation + Staff Admin Access Menu) */}
+      <header className="bg-white border-b border-[#D0E6F7] sticky top-0 z-40 shadow-sm" ref={navRef}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 group shrink-0">
             <LicLogo size="sm" showText={false} />
@@ -130,41 +244,112 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
                 LANGLEY ISLAMIC CENTRE
               </div>
               <div className="text-xs font-semibold text-[#009FE3] mt-0.5">
-                Spitfire Close (SL3) • Community Website
+                Spitfire Close (SL3) • Community Hub Portal
               </div>
             </div>
           </Link>
 
-          {/* Desktop Navigation: Public Modules + Staff Admin Access Dropdown */}
-          <div className="hidden xl:flex items-center gap-2">
-            <nav className="flex items-center gap-0.5">
-              {PUBLIC_NAV_MODULES.map((item) => {
-                const Icon = item.icon;
-                const active = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`px-2.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ${
-                      active
+          {/* Desktop Hub Navigation */}
+          <div className="hidden lg:flex items-center gap-1.5">
+            <Link
+              href="/"
+              onClick={() => setOpenHubDropdown(null)}
+              className={`px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition ${
+                pathname === "/"
+                  ? "bg-[#005A9C] text-white shadow-sm"
+                  : "text-[#005A9C] hover:bg-[#F0F7FC]"
+              }`}
+            >
+              <Home className="w-3.5 h-3.5 text-[#009FE3]" />
+              <span>Home</span>
+            </Link>
+
+            {PUBLIC_COMMUNITY_HUBS.map((hub) => {
+              const HubIcon = hub.icon;
+              const isHubActive =
+                pathname !== "/" && hub.items.some((i) => i.href === pathname);
+              const isOpen = openHubDropdown === hub.id;
+
+              return (
+                <div key={hub.id} className="relative">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenHubDropdown((prev) => (prev === hub.id ? null : hub.id))
+                    }
+                    className={`px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition ${
+                      isHubActive || isOpen
                         ? "bg-[#005A9C] text-white shadow-sm"
                         : "text-[#005A9C] hover:bg-[#F0F7FC]"
                     }`}
                   >
-                    <Icon className="w-3.5 h-3.5 text-[#009FE3]" />
-                    <span>{item.shortLabel}</span>
-                  </Link>
-                );
-              })}
-            </nav>
+                    <HubIcon className="w-3.5 h-3.5 text-[#009FE3]" />
+                    <span>{hub.shortTitle}</span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 transition-transform ${
+                        isOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isOpen && (
+                    <div className="absolute left-0 mt-2 w-80 bg-white rounded-2xl border-2 border-[#005A9C] shadow-xl p-2 z-50 space-y-1">
+                      <div className="px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-[#009FE3] border-b border-slate-100">
+                        {hub.title}
+                      </div>
+                      {hub.items.map((item) => {
+                        const ItemIcon = item.icon;
+                        const active = pathname === item.href;
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setOpenHubDropdown(null)}
+                            className={`flex items-start gap-3 p-2.5 rounded-xl transition ${
+                              active
+                                ? "bg-[#005A9C] text-white"
+                                : "hover:bg-[#F0F7FC] text-[#005A9C]"
+                            }`}
+                          >
+                            <div
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                                active
+                                  ? "bg-white/15 text-[#7FD4FF]"
+                                  : "bg-[#F0F7FC] text-[#009FE3]"
+                              }`}
+                            >
+                              <ItemIcon className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="font-extrabold text-xs">
+                                {item.label}
+                              </div>
+                              <div
+                                className={`text-[11px] leading-snug mt-0.5 ${
+                                  active ? "text-slate-200" : "text-slate-500"
+                                }`}
+                              >
+                                {item.sub}
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
 
             {/* Staff Admin Access Dropdown Menu */}
-            <div className="relative pl-2 ml-1 border-l-2 border-slate-200" ref={dropdownRef}>
+            <div className="relative pl-2 ml-1 border-l-2 border-slate-200">
               <button
                 type="button"
-                onClick={() => setStaffMenuOpen((v) => !v)}
+                onClick={() =>
+                  setOpenHubDropdown((prev) => (prev === "staff" ? null : "staff"))
+                }
                 className={`px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 border transition ${
-                  isStaffRoute || staffMenuOpen
+                  isStaffRoute || openHubDropdown === "staff"
                     ? "bg-[#005A9C] text-white border-[#005A9C] shadow-sm"
                     : "bg-[#F0F7FC] text-[#005A9C] border-[#D0E6F7] hover:border-[#009FE3]"
                 }`}
@@ -173,12 +358,12 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
                 <span>Staff Admin Access</span>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform ${
-                    staffMenuOpen ? "rotate-180" : ""
+                    openHubDropdown === "staff" ? "rotate-180" : ""
                   }`}
                 />
               </button>
 
-              {staffMenuOpen && (
+              {openHubDropdown === "staff" && (
                 <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl border-2 border-[#005A9C] shadow-xl p-2 z-50 space-y-1">
                   <div className="px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
                     LIC Staff &amp; Admin Tools
@@ -190,7 +375,7 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
                       <Link
                         key={item.href}
                         href={item.href}
-                        onClick={() => setStaffMenuOpen(false)}
+                        onClick={() => setOpenHubDropdown(null)}
                         className={`flex items-start gap-3 p-2.5 rounded-xl transition ${
                           active
                             ? "bg-[#005A9C] text-white"
@@ -199,7 +384,9 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
                       >
                         <div
                           className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                            active ? "bg-white/15 text-[#7FD4FF]" : "bg-[#F0F7FC] text-[#009FE3]"
+                            active
+                              ? "bg-white/15 text-[#7FD4FF]"
+                              : "bg-[#F0F7FC] text-[#009FE3]"
                           }`}
                         >
                           <Icon className="w-4 h-4" />
@@ -226,43 +413,77 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
           <button
             type="button"
             onClick={() => setMobileMenuOpen((v) => !v)}
-            className="xl:hidden inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F0F7FC] border border-[#D0E6F7] text-[#005A9C] font-bold text-sm"
+            className="lg:hidden inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F0F7FC] border border-[#D0E6F7] text-[#005A9C] font-bold text-sm"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            <span>Menu</span>
+            <span>Hub Menu</span>
           </button>
         </div>
 
-        {/* Mobile Drawer — Public Website + Staff Admin Access */}
-        {mobileMenuOpen && (
-          <div className="xl:hidden bg-white border-t border-[#D0E6F7] px-4 py-4 space-y-4">
-            <div>
-              <div className="text-xs font-black uppercase tracking-wider text-[#009FE3] mb-2 flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5" />
-                <span>LIC Public Community Website</span>
+        {/* Contextual Hub Sub-Navigation Strip (1-Tap Switcher Inside Any Hub) */}
+        {activeHub && (
+          <div className="bg-[#F0F7FC] border-t border-[#D0E6F7] px-4 py-2">
+            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+              <div className="text-xs font-black uppercase tracking-wider text-[#005A9C] flex items-center gap-1.5">
+                <activeHub.icon className="w-3.5 h-3.5 text-[#009FE3]" />
+                <span>{activeHub.title}:</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {PUBLIC_NAV_MODULES.map((item) => {
-                  const Icon = item.icon;
+              <div className="flex flex-wrap items-center gap-1.5">
+                {activeHub.items.map((item) => {
+                  const ItemIcon = item.icon;
                   const active = pathname === item.href;
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`p-3 rounded-xl font-bold text-xs flex items-center gap-2.5 border transition ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 border transition ${
                         active
-                          ? "bg-[#005A9C] text-white border-[#005A9C]"
-                          : "bg-[#F0F7FC] text-[#005A9C] border-[#D0E6F7]"
+                          ? "bg-[#005A9C] text-white border-[#005A9C] shadow-sm"
+                          : "bg-white text-[#005A9C] border-[#D0E6F7] hover:border-[#009FE3]"
                       }`}
                     >
-                      <Icon className="w-4 h-4 text-[#009FE3] shrink-0" />
-                      <span>{item.label}</span>
+                      <ItemIcon className="w-3.5 h-3.5 text-[#009FE3]" />
+                      <span>{item.shortLabel}</span>
                     </Link>
                   );
                 })}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Mobile Drawer — Grouped by Hub */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden bg-white border-t border-[#D0E6F7] px-4 py-4 space-y-4 max-h-[80vh] overflow-y-auto">
+            {PUBLIC_COMMUNITY_HUBS.map((hub) => (
+              <div key={hub.id}>
+                <div className="text-xs font-black uppercase tracking-wider text-[#009FE3] mb-2 flex items-center gap-1.5">
+                  <hub.icon className="w-3.5 h-3.5" />
+                  <span>{hub.title}</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {hub.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`p-3 rounded-xl font-bold text-xs flex items-center gap-2.5 border transition ${
+                          active
+                            ? "bg-[#005A9C] text-white border-[#005A9C]"
+                            : "bg-[#F0F7FC] text-[#005A9C] border-[#D0E6F7]"
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 text-[#009FE3] shrink-0" />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
 
             <div className="pt-3 border-t border-slate-200">
               <div className="text-xs font-black uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
@@ -322,37 +543,43 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
             <ul className="space-y-1.5 text-xs text-slate-100">
               <li>• Max 40 persons on-site at Spitfire Close (incl. staff/volunteers).</li>
               <li>• Never park in Mencap (gated next door) or the unmarked Resident Yard in front of LIC.</li>
-              <li>• Permitted: Public Bays at end of LIC, Layby in front of LIC, Common Rd &amp; Harrow Market.</li>
+              <li>• Permitted: Public Bays at end of LIC, Layby in front of LIC, Common Rd, Harvey Park &amp; Harrow Market.</li>
               <li>• Friday Jummah &amp; Eid Prayers held OFF-SITE at <strong>Langley Pavilion</strong>.</li>
             </ul>
           </div>
 
           <div>
             <h3 className="font-bold text-[#7FD4FF] uppercase tracking-wider text-xs mb-2.5">
-              Community &amp; Staff Admin Access
+              Quick Hub Access &amp; Staff Admin
             </h3>
             <p className="text-xs text-slate-100 mb-2">
               <strong>Operations Lead:</strong> Waqar Ahmed
             </p>
             <div className="flex flex-wrap gap-2">
               <Link
-                href="/volunteer"
+                href="/parking"
                 className="px-3 py-1.5 rounded-lg bg-[#009FE3] hover:bg-[#33B5EC] text-white font-bold text-xs transition"
               >
-                Volunteer Scheduler
+                Travel Hub
               </Link>
               <Link
-                href="/neighbour-log"
+                href="/quran-classes"
                 className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition"
               >
-                Neighbour Liaison Form
+                Student Hub
+              </Link>
+              <Link
+                href="/volunteer"
+                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition"
+              >
+                Community Hub
               </Link>
               <Link
                 href="/admin"
                 className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs inline-flex items-center gap-1 transition"
               >
                 <Lock className="w-3.5 h-3.5 text-[#009FE3]" />
-                <span>Staff Admin Access</span>
+                <span>Staff Admin</span>
               </Link>
             </div>
           </div>
