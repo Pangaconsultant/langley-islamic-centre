@@ -74,9 +74,35 @@ export interface MentoringRequest {
 
 export type QuranSessionId = "session-1" | "session-2" | "session-3";
 
+export type QuranPreferredDays = "Monday – Wednesday" | "Thursday – Saturday";
+
+export type QuranReadingLevel =
+  | "Learning Arabic letters"
+  | "Qaida / Noorani Qaida"
+  | "Can read basic Quran"
+  | "Can read Quran fluently"
+  | "Quran with Tajweed"
+  | "Hifz / Memorisation"
+  | "Other";
+
+export type QuranLearningDuration =
+  | "Less than 6 months"
+  | "6 months – 1 year"
+  | "1–2 years"
+  | "2–3 years"
+  | "3+ years";
+
+export type QuranAdmissionStatus =
+  | "Assessment Pending"
+  | "Assessed - Awaiting £40 Standing Order"
+  | "Confirmed & Enrolled"
+  | "Waitlisted";
+
 export interface QuranSession {
   id: QuranSessionId;
   title: string;
+  levelLabel?: "Beginner" | "Intermediate" | "Advanced";
+  officialTimeLabel?: string;
   timeWindow: "16:30–17:15" | "17:15–18:00" | "18:00–18:45";
   pickupAlertTime: string;
   ustadhName: string;
@@ -88,13 +114,33 @@ export type AttendanceStatus = "Unmarked" | "Present" | "Late" | "Absent" | "Pic
 
 export interface QuranStudent {
   id: string;
+  referenceNo?: string;
   sessionId: QuranSessionId;
   childName: string;
+  dateOfBirth?: string;
   age: number;
+  schoolYearGroup?: string;
+  homeAddress?: string;
+  postcode?: string;
+  medicalOrAllergies?: string;
   parentName: string;
+  relationshipToStudent?: "Father" | "Mother" | "Guardian" | "Other";
   parentPhone: string;
+  parentEmail?: string;
+  alternativeContactPhone?: string;
+  currentQuranLevel?: QuranReadingLevel;
+  learningDuration?: QuranLearningDuration;
+  attendingOtherMaktab?: boolean;
+  otherMaktabDetails?: string;
+  previouslyAssessedByLic?: boolean;
+  preferredDays?: QuranPreferredDays;
   travelMode: TravelMode;
   parkingRulesAccepted: boolean;
+  digitalSignature?: string;
+  signatureDate?: string;
+  admissionStatus?: QuranAdmissionStatus;
+  standingOrderVerified?: boolean;
+  teacherAssessmentNotes?: string;
   attendance: AttendanceStatus;
   enrolledAt: string;
 }
@@ -444,7 +490,9 @@ const INITIAL_SEED_STATE: LicDatabaseState = {
   quranSessions: [
     {
       id: "session-1",
-      title: "Session 1 — Foundation Qaida & Tajweed",
+      title: "Beginner — Foundation Qaida & Arabic Letters",
+      levelLabel: "Beginner",
+      officialTimeLabel: "4:30pm – 5:30pm (Staggered Drop-Off: 16:30–17:15)",
       timeWindow: "16:30–17:15",
       pickupAlertTime: "17:10",
       ustadhName: "Qari Abdullah Hasan",
@@ -453,7 +501,9 @@ const INITIAL_SEED_STATE: LicDatabaseState = {
     },
     {
       id: "session-2",
-      title: "Session 2 — Intermediate Nazirah & Memorisation",
+      title: "Intermediate — Nazira Quran Reading & Tajweed Rules",
+      levelLabel: "Intermediate",
+      officialTimeLabel: "5:30pm – 6:30pm (Staggered Drop-Off: 17:15–18:00)",
       timeWindow: "17:15–18:00",
       pickupAlertTime: "17:55",
       ustadhName: "Qari Abdullah Hasan",
@@ -461,10 +511,12 @@ const INITIAL_SEED_STATE: LicDatabaseState = {
     },
     {
       id: "session-3",
-      title: "Session 3 — Advanced Tajweed & Islamic Studies",
+      title: "Advanced — Fluent Quran Recitation & Applied Tajweed",
+      levelLabel: "Advanced",
+      officialTimeLabel: "6:30pm – 7:30pm (Staggered Drop-Off: 18:00–18:45)",
       timeWindow: "18:00–18:45",
       pickupAlertTime: "18:40",
-      ustadhName: "Ustadha Amina Begum",
+      ustadhName: "Qari Abdullah Hasan",
       maxCapacity: 10,
     },
   ],
@@ -1294,34 +1346,69 @@ export function useLicStore() {
   );
 
   const enrollQuranStudent = useCallback(
-    (student: Omit<QuranStudent, "id" | "attendance" | "enrolledAt">): { ok: boolean; error?: string } => {
-      let res: { ok: boolean; error?: string } = { ok: false };
+    (
+      student: Omit<QuranStudent, "id" | "attendance" | "enrolledAt">
+    ): { ok: boolean; referenceNo?: string; status?: QuranAdmissionStatus; error?: string } => {
+      let res: {
+        ok: boolean;
+        referenceNo?: string;
+        status?: QuranAdmissionStatus;
+        error?: string;
+      } = { ok: false };
       mutate((prev) => {
         const currentInSession = prev.quranStudents.filter(
           (s) => s.sessionId === student.sessionId
         ).length;
-        if (currentInSession >= 10) {
-          res = {
-            ok: false,
-            error: "This session has reached the strict 10-student maximum capacity.",
-          };
-          return prev;
-        }
-        res = { ok: true };
+        const isSessionFull = currentInSession >= 10;
+        const refNo =
+          student.referenceNo ||
+          `LIC-MKT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+        const initialStatus: QuranAdmissionStatus = isSessionFull
+          ? "Waitlisted"
+          : student.admissionStatus || "Assessment Pending";
+
+        res = {
+          ok: true,
+          referenceNo: refNo,
+          status: initialStatus,
+        };
         return {
           ...prev,
           quranStudents: [
-            ...prev.quranStudents,
             {
               ...student,
               id: `qs-${Date.now()}`,
+              referenceNo: refNo,
+              admissionStatus: initialStatus,
+              standingOrderVerified: student.standingOrderVerified ?? false,
               attendance: "Unmarked",
               enrolledAt: new Date().toISOString().split("T")[0],
             },
+            ...prev.quranStudents,
           ],
         };
       });
       return res;
+    },
+    [mutate]
+  );
+
+  const updateQuranStudentAdmission = useCallback(
+    (
+      studentId: string,
+      updates: {
+        sessionId?: QuranSessionId;
+        admissionStatus?: QuranAdmissionStatus;
+        standingOrderVerified?: boolean;
+        teacherAssessmentNotes?: string;
+      }
+    ) => {
+      mutate((prev) => ({
+        ...prev,
+        quranStudents: prev.quranStudents.map((s) =>
+          s.id === studentId ? { ...s, ...updates } : s
+        ),
+      }));
     },
     [mutate]
   );
@@ -1637,6 +1724,7 @@ export function useLicStore() {
     updateStudentAttendance,
     triggerPickupAlert,
     enrollQuranStudent,
+    updateQuranStudentAdmission,
     removeQuranStudent,
     bookEventSlot,
     createCommunityEvent,
