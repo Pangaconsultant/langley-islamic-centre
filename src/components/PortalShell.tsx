@@ -531,8 +531,7 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
               </div>
             </div>
             <p className="text-xs text-slate-200 leading-relaxed pt-1">
-              Spitfire Close, Langley, Slough (SL3 8GY). Operating in strict accordance with the
-              Slough Borough Council (SBC) Operational Management Plan &amp; Sustainable Travel Plan.
+              Spitfire Close, Langley, Slough (SL3 8GY).
             </p>
           </div>
 
