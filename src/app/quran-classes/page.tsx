@@ -123,6 +123,17 @@ const OFFICIAL_DECLARATIONS = [
   "I confirm that the information provided in this form is accurate and complete, and I agree to follow LIC's Spitfire Close parking & non-idling rules (parking at Common Rd, Harvey Park, or Harrow Market).",
 ];
 
+function buildUkWhatsAppLink(rawPhone: string, message: string): string {
+  const digits = (rawPhone || "").replace(/\D/g, "");
+  let intl = digits;
+  if (digits.startsWith("07") && digits.length === 11) {
+    intl = "44" + digits.slice(1);
+  } else if (digits.startsWith("0") && digits.length >= 10) {
+    intl = "44" + digits.slice(1);
+  }
+  return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
+}
+
 export default function QuranClassesPage() {
   const {
     state,
@@ -332,14 +343,37 @@ export default function QuranClassesPage() {
     (s) => s.sessionId === selectedSessionId
   );
 
-  const handleSendPickupAlert = (sessionId: QuranSessionId) => {
+  const handleSendPickupAlert = async (sessionId: QuranSessionId) => {
     const ses = state.quranSessions.find((s) => s.id === sessionId);
-    const count = state.quranStudents.filter(
+    const students = state.quranStudents.filter(
       (s) => s.sessionId === sessionId
-    ).length;
+    );
     triggerPickupAlert(sessionId);
+
+    try {
+      const res = await fetch("/api/send-pickup-alert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionTitle: ses?.title,
+          recipients: students.map((s) => ({
+            parentName: s.parentName,
+            parentPhone: s.parentPhone,
+            childName: s.childName,
+          })),
+        }),
+      });
+      const data = (await res.json()) as { mode?: string; message?: string };
+      if (data.mode === "twilio_live") {
+        setAlertBanner(`LIVE TWILIO DISPATCH: ${data.message}`);
+        return;
+      }
+    } catch {
+      // Fallback banner
+    }
+
     setAlertBanner(
-      `SMS & WhatsApp 5-Minute Pickup Alert dispatched to ${count} parents for ${ses?.title}! ("Assalamu Alaikum, class finishes in 5 mins. Please park on Common Road, Harvey Park, or Harrow Market and walk to the Spitfire Close door. Strictly NO waiting or idling in the Resident Yard or Mencap gates.")`
+      `5-Minute Pickup Alert timestamp logged in Supabase for ${students.length} parents (${ses?.title}). Tap the green "WhatsApp Parent" button next to any student below to open a pre-filled WhatsApp message directly to their mobile, or add TWILIO_ACCOUNT_SID in Vercel for automated bulk delivery.`
     );
   };
 
@@ -1660,6 +1694,19 @@ export default function QuranClassesPage() {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">
+                        <a
+                          href={buildUkWhatsAppLink(
+                            student.parentPhone,
+                            `Assalamu Alaikum ${student.parentName}, LIC Maktab class (${activeSession.title}) for ${student.childName} finishes in 5 minutes. Please park on Common Road, Harvey Park, or Harrow Market and walk to the Spitfire Close door. Strictly NO waiting in the Resident Yard or Mencap. JazakAllah Khair.`
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white inline-flex items-center gap-1.5 shadow-sm transition"
+                          title="Send real pre-filled WhatsApp pickup message to parent"
+                        >
+                          <MessageSquareShare className="w-3.5 h-3.5" />
+                          <span>WhatsApp Parent</span>
+                        </a>
                         {ATTENDANCE_OPTIONS.map((statusOption) => {
                           const active = student.attendance === statusOption;
                           return (
@@ -1789,6 +1836,19 @@ export default function QuranClassesPage() {
                           </option>
                           <option value="Waitlisted">Waitlisted</option>
                         </select>
+
+                        <a
+                          href={buildUkWhatsAppLink(
+                            st.parentPhone,
+                            `Assalamu Alaikum ${st.parentName}, thank you for registering ${st.childName} (Ref: ${st.referenceNo || st.id}) for LIC Maktab Quran Classes. We would like to invite ${st.childName} for a brief Teacher Assessment at Langley Islamic Centre (Spitfire Close, SL3 8GY). Please reply to confirm a convenient day.`
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="h-9 px-3 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white inline-flex items-center gap-1.5 shadow-sm transition"
+                        >
+                          <MessageSquareShare className="w-3.5 h-3.5" />
+                          <span>WhatsApp Invite</span>
+                        </a>
 
                         <button
                           type="button"
