@@ -18,11 +18,15 @@ export default function ContactUsPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !message.trim()) return;
+    setSubmitting(true);
+
+    // 1. Always save to Supabase database (so no enquiry is ever lost)
     const refId = submitNeighbourIncident({
       category: "General Community Feedback",
       reporterName: name.trim() || "Community Member",
@@ -33,6 +37,24 @@ export default function ContactUsPage() {
       }),
       description: message.trim(),
     });
+
+    // 2. Dispatch email notification to info@langleyislamiccentre.co.uk
+    try {
+      await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim() || "Community Member",
+          email: email.trim(),
+          message: message.trim(),
+          refId,
+        }),
+      });
+    } catch {
+      // Saved in Supabase fallback
+    }
+
+    setSubmitting(false);
     setSubmittedRef(refId);
     setName("");
     setEmail("");
@@ -189,10 +211,11 @@ export default function ContactUsPage() {
 
             <button
               type="submit"
-              className="w-full h-12 rounded-2xl bg-[#005A9C] hover:bg-[#003F6E] text-white font-black text-sm shadow-md inline-flex items-center justify-center gap-2 transition"
+              disabled={submitting}
+              className="w-full h-12 rounded-2xl bg-[#005A9C] hover:bg-[#003F6E] disabled:bg-slate-400 text-white font-black text-sm shadow-md inline-flex items-center justify-center gap-2 transition"
             >
               <Send className="w-4 h-4 text-[#009FE3]" />
-              <span>Contact Us</span>
+              <span>{submitting ? "Sending Message..." : "Contact Us"}</span>
             </button>
           </form>
         </div>
