@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   OctagonAlert,
   Building2,
+  Phone,
 } from "lucide-react";
 import { LicLogo } from "@/components/LicLogo";
 import { useLicStore, PRAYER_TIMETABLE } from "@/lib/db";
@@ -113,6 +114,14 @@ const COMMUNITY_HUB_SECTIONS = [
         description:
           "Grounded strictly in LIC's official timetable, Sisters' Wednesday class (13:30–14:30), off-site Langley Pavilion Jummah/Eid, and parking rules.",
         icon: Bot,
+      },
+      {
+        title: "Contact Us (Click-to-Reveal Phone & Email)",
+        route: "/contact",
+        tag: "Bot-Protected Contact",
+        description:
+          "Official Spitfire Close contact form, opening hours (13:00–19:00 hrs), and anti-bot Click-to-Reveal telephone and email address.",
+        icon: Phone,
       },
     ],
   },

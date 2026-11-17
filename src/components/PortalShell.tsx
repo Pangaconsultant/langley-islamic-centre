@@ -20,10 +20,12 @@ import {
   Home,
   Lock,
   ChevronDown,
+  Phone,
 } from "lucide-react";
 import { LicLogo } from "./LicLogo";
 import { useLicStore } from "@/lib/db";
 import { FloatingAssistantWidget } from "./FloatingAssistantWidget";
+import { MaskedContactBox } from "./MaskedContactBox";
 
 export interface HubNavItem {
   href: string;
@@ -139,6 +141,13 @@ export const PUBLIC_COMMUNITY_HUBS: CommunityHub[] = [
         shortLabel: "Neighbour Liaison",
         sub: "Spitfire Close neighbour feedback & tracked Ticket ID log",
         icon: ShieldAlert,
+      },
+      {
+        href: "/contact",
+        label: "Contact Us (Click-to-Reveal Phone & Email)",
+        shortLabel: "Contact Us",
+        sub: "Official Spitfire Close contact form, hours (13:00–19:00) & bot-masked details",
+        icon: Phone,
       },
     ],
   },
@@ -549,15 +558,21 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
 
           <div>
             <h3 className="font-bold text-[#7FD4FF] uppercase tracking-wider text-xs mb-2.5">
-              Quick Hub Access &amp; Staff Admin
+              Contact Us (Anti-Bot Protected) &amp; Hub Links
             </h3>
-            <p className="text-xs text-slate-100 mb-2">
-              <strong>Operations Lead:</strong> Waqar Ahmed
-            </p>
+            <div className="mb-3">
+              <MaskedContactBox variant="footer" />
+            </div>
             <div className="flex flex-wrap gap-2">
               <Link
-                href="/parking"
+                href="/contact"
                 className="px-3 py-1.5 rounded-lg bg-[#009FE3] hover:bg-[#33B5EC] text-white font-bold text-xs transition"
+              >
+                Contact Us Form
+              </Link>
+              <Link
+                href="/parking"
+                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition"
               >
                 Travel Hub
               </Link>
@@ -566,12 +581,6 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
                 className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition"
               >
                 Student Hub
-              </Link>
-              <Link
-                href="/volunteer"
-                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition"
-              >
-                Community Hub
               </Link>
               <Link
                 href="/admin"
