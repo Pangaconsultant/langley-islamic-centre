@@ -83,6 +83,16 @@ PART 1: TABLE & COLUMN STRUCTURE SUMMARY
    - attendance                  text          NOT NULL DEFAULT 'Unmarked' ('Unmarked' | 'Present' | 'Late' | 'Absent' | 'Picked Up')
    - enrolled_at                 text          NOT NULL
 
+7. public.lic_staff_directory (Role-Based Approved Staff Allowlist & WebAuthn Passkeys)
+   - id                          text          PRIMARY KEY
+   - name                        text          NOT NULL
+   - email                       text          NOT NULL UNIQUE
+   - role                        text          NOT NULL ('Trustee Admin' | 'Operations Lead' | 'Maktab Teacher' | 'Door Marshal')
+   - is_active                   boolean       NOT NULL DEFAULT true
+   - passkey_credential_id       text          NULL (WebAuthn FIDO2 Biometric Credential ID)
+   - last_login_at               timestamptz   NULL
+   - created_at                  timestamptz   NOT NULL DEFAULT now()
+
 
 --------------------------------------------------------------------------------
 PART 2: COMPLETE SQL DDL SCHEMA, RLS POLICIES & TRIGGER DEFINITIONS
