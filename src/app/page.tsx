@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import {
   GraduationCap,
@@ -19,53 +19,14 @@ import {
   Building2,
   Phone,
   HeartHandshake,
-  Landmark,
-  Copy,
-  Check,
-  Sparkles,
   Award,
   Users,
   Compass,
   ShieldCheck,
   Heart,
-  CreditCard,
-  ExternalLink,
 } from "lucide-react";
 import { LicLogo } from "@/components/LicLogo";
 import { useLicStore, PRAYER_TIMETABLE } from "@/lib/db";
-
-const STRIPE_CUSTOM_DONATE_URL =
-  "https://donate.stripe.com/dR6dSoaUr7oJ1m84gg";
-
-const IMPACT_TIERS = [
-  {
-    amount: 20,
-    label: "£20",
-    title: "Small Step, Big Impact",
-    impact:
-      "Helps sustain daily prayer facilities, utilities, and welcoming community activities at Spitfire Close.",
-    ref: "LIC Donation",
-    stripeUrl: "https://buy.stripe.com/eVa3dK0fN6kF6Gs28a",
-  },
-  {
-    amount: 50,
-    label: "£50",
-    title: "Strengthen the Walls",
-    impact:
-      "Supports our Masjid building fund, children's Maktab education, GCSE study clinics, and youth mentoring.",
-    ref: "LIC Donation",
-    stripeUrl: "https://buy.stripe.com/3csdSogeLeRbe8U4gj",
-  },
-  {
-    amount: 100,
-    label: "£100",
-    title: "Donate Bricks",
-    impact:
-      "Builds lasting Sadaqah Jariyah for Langley's Masjid, Sisters' programmes, and community welfare services.",
-    ref: "LIC Donation",
-    stripeUrl: "https://buy.stripe.com/aEU6pWbYv6kFd4QbIM",
-  },
-];
 
 const CHARITY_VALUES = [
   "Live by our faith",
@@ -82,25 +43,8 @@ export default function HomePage() {
   const { state } = useLicStore();
   const { currentCount, maxCapacity, activeSessionName } = state.occupancy;
 
-  const [selectedTier, setSelectedTier] = useState(IMPACT_TIERS[1]); // Default £50
-  const [selectedRef, setSelectedRef] = useState<
-    "LIC Donation" | "LIC Mthly" | "LIC Zakat" | "LIC Sadaqah"
-  >("LIC Donation");
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-
   const isRed = currentCount >= 37;
   const isAmber = currentCount >= 30 && currentCount < 37;
-
-  const giftAidBoost = (selectedTier.amount * 0.25).toFixed(2);
-  const totalImpact = (selectedTier.amount * 1.25).toFixed(2);
-
-  const copyToClipboard = (text: string, key: string) => {
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      void navigator.clipboard.writeText(text);
-      setCopiedField(key);
-      setTimeout(() => setCopiedField(null), 2500);
-    }
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 sm:py-10 space-y-12">
@@ -294,265 +238,7 @@ export default function HomePage() {
       </section>
 
       {/* ================================================================== */}
-      {/* 2. INTERACTIVE CHARITY IMPACT & GIFT AID DONATION SHOWCASE         */}
-      {/* ================================================================== */}
-      <section className="bg-gradient-to-br from-[#005A9C] via-[#00467A] to-[#003259] text-white rounded-[2rem] p-6 sm:p-10 shadow-xl border-2 border-[#009FE3] space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Left 7 Cols: Interactive Package Selector & +25% Gift Aid Calculator */}
-          <div className="lg:col-span-7 space-y-5">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-300/40 text-emerald-200 text-xs font-black uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
-              <span>
-                Official LIC Stripe Checkout • HSBC Bank Transfer • +25% UK Gift
-                Aid
-              </span>
-            </div>
-
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-              Growing Together. Giving Back — Support Your Local Masjid &amp;
-              Community Hub
-            </h2>
-
-            <blockquote className="p-4 rounded-2xl bg-white/10 border-l-4 border-[#009FE3] text-xs sm:text-sm italic text-slate-100 leading-relaxed">
-              &ldquo;Who is it that will lend Allah a good loan which Allah will
-              multiply [many times over] for them, and they will have an
-              honourable reward?&rdquo; —{" "}
-              <strong className="text-[#7FD4FF] not-italic">
-                Surah Al-Hadid (57:11)
-              </strong>{" "}
-              •{" "}
-              <span className="not-italic font-semibold">
-                &ldquo;Charity does not decrease wealth.&rdquo; (Sahih Muslim)
-              </span>
-            </blockquote>
-
-            {/* Interactive £25 / £50 / £100 Impact Selector */}
-            <div className="space-y-3">
-              <div className="text-xs font-black uppercase tracking-wider text-[#7FD4FF]">
-                1. Preview Your Donation&apos;s Community Impact &amp; Gift Aid
-                Boost:
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                {IMPACT_TIERS.map((tier) => {
-                  const active = selectedTier.amount === tier.amount;
-                  return (
-                    <button
-                      key={tier.amount}
-                      type="button"
-                      onClick={() => setSelectedTier(tier)}
-                      className={`p-3.5 rounded-2xl border-2 text-left transition ${
-                        active
-                          ? "bg-emerald-500 border-white text-white shadow-lg scale-[1.02]"
-                          : "bg-white/10 border-white/20 text-white hover:bg-white/20"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xl sm:text-2xl font-black">
-                          {tier.label}
-                        </span>
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-black/20">
-                          +£{(tier.amount * 0.25).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="text-[11px] font-bold mt-1 line-clamp-1 opacity-95">
-                        {tier.title}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Selected Package Impact Description */}
-              <div className="p-4 rounded-2xl bg-white/10 border border-white/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="text-xs font-black text-emerald-300">
-                    {selectedTier.label} — {selectedTier.title}
-                  </div>
-                  <p className="text-xs text-slate-200">{selectedTier.impact}</p>
-                </div>
-                <div className="shrink-0 bg-emerald-500/25 border border-emerald-300/40 px-3.5 py-2 rounded-xl text-center">
-                  <div className="text-[10px] font-black uppercase text-emerald-200">
-                    With UK Gift Aid (+25%)
-                  </div>
-                  <div className="text-base font-black text-white">
-                    Worth £{totalImpact}
-                  </div>
-                </div>
-              </div>
-
-              {/* Direct Official LIC Stripe Checkout Buttons */}
-              <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                <a
-                  href={selectedTier.stripeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xs sm:text-sm inline-flex items-center gap-2 shadow-lg transition"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Donate {selectedTier.label} via Stripe</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-                <a
-                  href={STRIPE_CUSTOM_DONATE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-3 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/25 font-extrabold text-xs inline-flex items-center gap-1.5 transition"
-                >
-                  <span>Custom Amount (Stripe)</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-                <Link
-                  href="/donations"
-                  className="px-4 py-3 rounded-xl bg-[#009FE3]/30 hover:bg-[#009FE3]/50 text-[#7FD4FF] border border-[#7FD4FF]/40 font-extrabold text-xs inline-flex items-center gap-1.5 transition"
-                >
-                  <span>All 9 Tiers (£20–£10k)</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Right 5 Cols: Instant HSBC Bank Transfer & Gift Aid Action Card */}
-          <div className="lg:col-span-5 bg-white text-slate-900 rounded-3xl p-6 sm:p-7 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <div className="text-[11px] font-black uppercase tracking-wider text-[#009FE3]">
-                  Direct Bank Transfer &amp; Standing Orders
-                </div>
-                <h3 className="text-lg font-black text-[#005A9C]">
-                  HSBC Bank Account Details
-                </h3>
-              </div>
-              <Landmark className="w-7 h-7 text-[#005A9C]" />
-            </div>
-
-            {/* Fund Reference Pills */}
-            <div>
-              <div className="text-[11px] font-extrabold text-slate-500 mb-1.5">
-                Select Payment Reference for Your Transfer:
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {(
-                  [
-                    { ref: "LIC Donation", label: "Lump Sum (LIC Donation)" },
-                    { ref: "LIC Mthly", label: "Monthly SO (LIC Mthly)" },
-                    { ref: "LIC Zakat", label: "Zakat (LIC Zakat)" },
-                    { ref: "LIC Sadaqah", label: "Sadaqah (LIC Sadaqah)" },
-                  ] as const
-                ).map((item) => (
-                  <button
-                    key={item.ref}
-                    type="button"
-                    onClick={() => setSelectedRef(item.ref)}
-                    className={`py-2 px-2.5 rounded-xl text-[11px] font-extrabold border text-left transition ${
-                      selectedRef === item.ref
-                        ? "bg-[#005A9C] text-white border-[#005A9C]"
-                        : "bg-[#F0F7FC] text-[#005A9C] border-[#D0E6F7]"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Copyable Bank Details Box */}
-            <div className="p-4 rounded-2xl bg-[#F0F7FC] border-2 border-[#D0E6F7] space-y-2.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500 font-bold">Account Name:</span>
-                <span className="font-black text-[#005A9C]">
-                  Langley Islamic Centre
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500 font-bold">Sort Code:</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-base font-black text-[#005A9C]">
-                    40-42-08
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard("40-42-08", "sort")}
-                    className="px-2 py-0.5 rounded bg-white border border-[#D0E6F7] text-[11px] font-bold text-[#005A9C]"
-                  >
-                    {copiedField === "sort" ? "✓ Copied" : "Copy"}
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500 font-bold">
-                  Account Number:
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-base font-black text-[#005A9C]">
-                    0249 4973
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard("02494973", "acc")}
-                    className="px-2 py-0.5 rounded bg-white border border-[#D0E6F7] text-[11px] font-bold text-[#005A9C]"
-                  >
-                    {copiedField === "acc" ? "✓ Copied" : "Copy"}
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center justify-between pt-2 border-t border-[#D0E6F7]">
-                <span className="text-slate-500 font-bold">
-                  Payment Reference:
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-black px-2 py-0.5 rounded bg-[#005A9C] text-white">
-                    {selectedRef}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(selectedRef, "ref")}
-                    className="px-2 py-0.5 rounded bg-white border border-[#D0E6F7] text-[11px] font-bold text-[#005A9C]"
-                  >
-                    {copiedField === "ref" ? "✓ Copied" : "Copy"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() =>
-                  copyToClipboard(
-                    `Bank: HSBC Bank\nAccount Name: Langley Islamic Centre\nSort Code: 40-42-08\nAccount Number: 0249 4973\nReference: ${selectedRef}`,
-                    "all"
-                  )
-                }
-                className="py-3 px-4 rounded-xl bg-[#F0F7FC] hover:bg-slate-200 text-[#005A9C] font-extrabold text-xs inline-flex items-center justify-center gap-1.5 border border-[#D0E6F7] transition"
-              >
-                {copiedField === "all" ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-600" />
-                    <span>All Details Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 text-[#009FE3]" />
-                    <span>Copy All Bank Details</span>
-                  </>
-                )}
-              </button>
-
-              <Link
-                href="/donations"
-                className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs inline-flex items-center justify-center gap-1.5 shadow-md transition"
-              >
-                <HeartHandshake className="w-4 h-4" />
-                <span>Claim +25% Gift Aid (+£{giftAidBoost})</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ================================================================== */}
-      {/* 2B. OUR HOME AT SPITFIRE CLOSE — OFFICIAL LIC BUILDING PHOTO GALLERY */}
+      {/* 2. OUR HOME AT SPITFIRE CLOSE — OFFICIAL LIC BUILDING PHOTO GALLERY */}
       {/* ================================================================== */}
       <section className="bg-white rounded-[2rem] border-2 border-[#D0E6F7] p-6 sm:p-9 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-100 pb-4">
