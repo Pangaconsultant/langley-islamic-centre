@@ -236,9 +236,6 @@ export default function TrusteeAdminCompliancePage() {
           <h1 className="text-2xl sm:text-3xl font-black text-[#005A9C]">
             LIC Admin Backend, CMS &amp; SBC Compliance Portal
           </h1>
-          <p className="text-sm sm:text-base text-slate-600">
-            Centralised backend for LIC Trustees and Operations Lead (<strong>Waqar Ahmed</strong>) to add and maintain Volunteer Tasks, Mentors, Events, Kiosk Regulars, SBC Travel Plan CSV exports, and confidential PIN settings.
-          </p>
         </div>
 
         <div className="bg-[#F0F7FC] border border-[#D0E6F7] rounded-2xl p-4 flex items-center gap-3 shrink-0">
