@@ -1,98 +1,117 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import {
   HeartHandshake,
   Landmark,
   Copy,
   Check,
   Sparkles,
-  CheckCircle2,
   ShieldCheck,
-  Repeat,
   HandCoins,
-  BookOpen,
-  Users,
-  ArrowRight,
+  CreditCard,
+  ExternalLink,
 } from "lucide-react";
 
-type DonationFundType =
-  | {
-      id: "lump";
-      label: "Lump Sum Donation";
-      reference: "LIC Donation";
-      sub: "One-off contribution to Centre operations & facilities";
-    }
-  | {
-      id: "monthly";
-      label: "Monthly Standing Order";
-      reference: "LIC Mthly";
-      sub: "Regular monthly support for long-term stability & planning";
-    }
-  | {
-      id: "zakat";
-      label: "Zakat Donation";
-      reference: "LIC Zakat";
-      sub: "100% ring-fenced Zakat distribution for eligible recipients";
-    }
-  | {
-      id: "sadaqah";
-      label: "Sadaqah / Lillah";
-      reference: "LIC Sadaqah";
-      sub: "Voluntary Sadaqah Jariyah for masjid, education & welfare";
-    };
+interface DonationPackage {
+  id: string;
+  amount: number | null;
+  amountLabel: string;
+  title: string;
+  description: string;
+  provider: "Stripe" | "LaunchGood";
+  url: string;
+  featured?: boolean;
+}
 
-const DONATION_FUNDS: DonationFundType[] = [
+const OFFICIAL_LIC_PACKAGES: DonationPackage[] = [
   {
-    id: "lump",
-    label: "Lump Sum Donation",
-    reference: "LIC Donation",
-    sub: "One-off contribution to Centre operations & facilities",
+    id: "pkg-20",
+    amount: 20,
+    amountLabel: "£20",
+    title: "Small Step, Big Impact",
+    description: "Every contribution makes a lasting Sadaqah Jariyah impact.",
+    provider: "Stripe",
+    url: "https://buy.stripe.com/eVa3dK0fN6kF6Gs28a",
   },
   {
-    id: "monthly",
-    label: "Monthly Standing Order",
-    reference: "LIC Mthly",
-    sub: "Regular monthly support for long-term stability & planning",
-  },
-  {
-    id: "zakat",
-    label: "Zakat Donation",
-    reference: "LIC Zakat",
-    sub: "100% ring-fenced Zakat distribution for eligible recipients",
-  },
-  {
-    id: "sadaqah",
-    label: "Sadaqah / Lillah",
-    reference: "LIC Sadaqah",
-    sub: "Voluntary Sadaqah Jariyah for masjid, education & welfare",
-  },
-];
-
-const SUGGESTED_TIERS = [
-  {
-    amount: 25,
-    title: "£25 – General Support",
-    description:
-      "Supports ongoing activities, maintenance, and daily community programmes at Spitfire Close.",
-    icon: Landmark,
-  },
-  {
+    id: "pkg-50",
     amount: 50,
-    title: "£50 – Educational & Youth",
-    description:
-      "Helps fund learning materials, Youth Hub mentoring sessions, and family activities.",
-    icon: BookOpen,
+    amountLabel: "£50",
+    title: "Strengthen the Walls",
+    description: "Help strengthen and maintain our community masjid facilities.",
+    provider: "Stripe",
+    url: "https://buy.stripe.com/3csdSogeLeRbe8U4gj",
+    featured: true,
   },
   {
+    id: "pkg-100-bricks",
     amount: 100,
-    title: "£100 – Community Services",
-    description:
-      "Contributes to wider community events, facilities, wellbeing support, and outreach work.",
-    icon: Users,
+    amountLabel: "£100",
+    title: "Donate Bricks",
+    description: "Contribute towards building and expanding our Langley Masjid.",
+    provider: "Stripe",
+    url: "https://buy.stripe.com/aEU6pWbYv6kFd4QbIM",
+    featured: true,
+  },
+  {
+    id: "pkg-100-youth",
+    amount: 100,
+    amountLabel: "£100",
+    title: "Youth Challenge",
+    description: "Support Youth Hub programmes, mentoring & community learning.",
+    provider: "Stripe",
+    url: "https://buy.stripe.com/aEU6pWbYv6kFd4QbIM",
+  },
+  {
+    id: "pkg-500-family",
+    amount: 500,
+    amountLabel: "£500",
+    title: "Family Challenge",
+    description: "Join our LaunchGood Masjid Appeal as a family.",
+    provider: "LaunchGood",
+    url: "https://www.launchgood.com/communitypage/urgent_appeal_550000_required_for_masjid_in_langley#!/community/urgent_appeal_550000_required_for_masjid_in_langley/",
+  },
+  {
+    id: "pkg-1000",
+    amount: 1000,
+    amountLabel: "£1,000",
+    title: "Donate Musalahs",
+    description: "Sponsor dedicated prayer spaces (Musalahs) as Sadaqah Jariyah.",
+    provider: "Stripe",
+    url: "https://buy.stripe.com/dR629G7If9wRfcYcMR",
+  },
+  {
+    id: "pkg-5000",
+    amount: 5000,
+    amountLabel: "£5,000",
+    title: "Donate Half Saff (Row)",
+    description: "Sponsor half a full prayer row inside Langley Islamic Centre.",
+    provider: "Stripe",
+    url: "https://buy.stripe.com/7sI9C83rZ24pfcY008",
+  },
+  {
+    id: "pkg-10000",
+    amount: 10000,
+    amountLabel: "£10,000",
+    title: "Donate Full Saff (Row)",
+    description: "Sponsor an entire prayer row (Saff) for generations to come.",
+    provider: "Stripe",
+    url: "https://buy.stripe.com/9AQ6pW4w34cx2qcbIO",
+  },
+  {
+    id: "pkg-custom",
+    amount: null,
+    amountLabel: "Custom",
+    title: "Other Amount (Any Value)",
+    description: "Choose any one-off or recurring amount securely via Stripe.",
+    provider: "Stripe",
+    url: "https://donate.stripe.com/dR6dSoaUr7oJ1m84gg",
   },
 ];
+
+const PRIMARY_STRIPE_DONATE_URL =
+  "https://donate.stripe.com/dR6dSoaUr7oJ1m84gg";
 
 const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -102,11 +121,10 @@ const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_wRaJKv2zKD6kdQAK-AZTWA_LALl_3WM";
 
 export default function DonationsPage() {
-  const [selectedFund, setSelectedFund] = useState<DonationFundType>(
-    DONATION_FUNDS[0]
-  );
-  const [amount, setAmount] = useState<number>(50);
-  const [customAmountStr, setCustomAmountStr] = useState<string>("50");
+  const [selectedRef, setSelectedRef] = useState<
+    "LIC Donation" | "LIC Mthly" | "LIC Zakat" | "LIC Sadaqah"
+  >("LIC Donation");
+  const [giftAidAmount, setGiftAidAmount] = useState<number>(100);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // HMRC Gift Aid Digital Declaration State
@@ -124,32 +142,17 @@ export default function DonationsPage() {
     amount: number;
     boost: number;
     totalWorth: number;
-    bankReference: string;
   } | null>(null);
 
-  const giftAidBoost = Math.round(amount * 0.25 * 100) / 100;
-  const totalWithGiftAid = Math.round((amount + giftAidBoost) * 100) / 100;
+  const giftAidBoost = Math.round(giftAidAmount * 0.25 * 100) / 100;
+  const totalWithGiftAid =
+    Math.round((giftAidAmount + giftAidBoost) * 100) / 100;
 
   const copyText = (text: string, key: string) => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       void navigator.clipboard.writeText(text);
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(null), 2000);
-    }
-  };
-
-  const handleTierSelect = (amt: number) => {
-    setAmount(amt);
-    setCustomAmountStr(String(amt));
-  };
-
-  const handleCustomAmountChange = (val: string) => {
-    setCustomAmountStr(val);
-    const parsed = parseFloat(val);
-    if (!isNaN(parsed) && parsed > 0) {
-      setAmount(parsed);
-    } else {
-      setAmount(0);
     }
   };
 
@@ -168,7 +171,6 @@ export default function DonationsPage() {
     setSubmitting(true);
     const refNo = `LIC-GA-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // 1. Save directly to public.lic_gift_aid_declarations in Supabase
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/lic_gift_aid_declarations`, {
         method: "POST",
@@ -186,9 +188,9 @@ export default function DonationsPage() {
           donor_phone: donorPhone.trim(),
           home_address: homeAddress.trim(),
           postcode: postcode.trim().toUpperCase(),
-          donation_type: selectedFund.label,
-          payment_reference: selectedFund.reference,
-          amount_gbp: amount,
+          donation_type: "Stripe / HSBC Bank Donation",
+          payment_reference: selectedRef,
+          amount_gbp: giftAidAmount,
           gift_aid_boost_gbp: giftAidBoost,
           uk_taxpayer_confirmed: ukTaxpayerConfirmed,
           cover_past_4_years: coverPast4Years,
@@ -199,7 +201,6 @@ export default function DonationsPage() {
       // Handled gracefully
     }
 
-    // 2. Also notify info@langleyislamiccentre.co.uk via /api/contact
     try {
       await fetch("/api/contact", {
         method: "POST",
@@ -208,11 +209,9 @@ export default function DonationsPage() {
           name: donorName.trim(),
           email: donorEmail.trim(),
           refId: refNo,
-          message: `HMRC Gift Aid Declaration (${refNo}) for £${amount.toFixed(
+          message: `HMRC Gift Aid Declaration (${refNo}) for £${giftAidAmount.toFixed(
             2
-          )} (${selectedFund.label} - Bank Ref: ${
-            selectedFund.reference
-          }). Gift Aid Reclaim (+25%): £${giftAidBoost.toFixed(
+          )} (Ref: ${selectedRef}). Gift Aid Reclaim (+25%): £${giftAidBoost.toFixed(
             2
           )} (Total Worth to LIC: £${totalWithGiftAid.toFixed(
             2
@@ -228,377 +227,329 @@ export default function DonationsPage() {
     setSubmitting(false);
     setSubmittedGiftAid({
       referenceNo: refNo,
-      amount,
+      amount: giftAidAmount,
       boost: giftAidBoost,
       totalWorth: totalWithGiftAid,
-      bankReference: selectedFund.reference,
     });
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      {/* Hero Banner with Surah Al-Hadid (57:11) & Sahih Muslim Hadith */}
-      <div className="bg-[#005A9C] text-white rounded-3xl p-6 sm:p-10 shadow-md space-y-6 border-2 border-[#009FE3]/40">
+      {/* Hero Banner with Direct Stripe Donate CTA + Quranic Verse */}
+      <div className="bg-gradient-to-br from-[#005A9C] via-[#00467A] to-[#003259] text-white rounded-3xl p-6 sm:p-10 shadow-lg space-y-6 border-2 border-[#009FE3]">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-3 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-[#7FD4FF]/30 text-[#7FD4FF] text-xs font-extrabold uppercase tracking-wider">
-              <HeartHandshake className="w-4 h-4 text-[#009FE3]" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-300/40 text-emerald-200 text-xs font-extrabold uppercase tracking-wider">
+              <HeartHandshake className="w-4 h-4 text-emerald-300" />
               <span>
                 Please Support Us • Registered UK Charity No. 1180443
               </span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black tracking-tight">
-              Support Langley Islamic Centre — Sadaqah, Zakat &amp; Standing
-              Orders
+              Support Langley Islamic Centre — Donate Online via Stripe or HSBC
+              Bank Transfer
             </h1>
             <p className="text-sm sm:text-base text-slate-100 leading-relaxed">
-              Your generous donations help Langley Islamic Centre (LIC) maintain
-              our community facilities, provide Islamic education, organise
-              youth and family programmes, and serve the spiritual and social
-              needs of our community. Every contribution—large or small—makes a
-              meaningful difference.
+              &ldquo;Who is it that will lend Allah a good loan which Allah will
+              multiply [many times over] for them, and they will have an
+              honourable reward?&rdquo; <strong>(Surah Al-Hadid 57:11)</strong>.
+              Donate securely online via <strong>Stripe</strong> (Card, Apple
+              Pay, Google Pay) or directly to our <strong>HSBC</strong> charity
+              account.
             </p>
           </div>
 
-          <div className="bg-white/10 border border-white/20 rounded-2xl p-5 lg:w-80 shrink-0 space-y-2">
-            <div className="text-xs font-black uppercase tracking-wider text-[#7FD4FF]">
-              Sahih Muslim
-            </div>
-            <p className="text-sm font-bold italic text-white">
-              The Prophet Muhammad (peace be upon him) said: &ldquo;Charity does
-              not decrease wealth.&rdquo;
-            </p>
-            <div className="pt-2 border-t border-white/15 text-[11px] text-slate-200">
-              UK Taxpayers can add <strong>+25% Gift Aid</strong> at zero extra
-              cost.
+          <div className="flex flex-col gap-3 shrink-0 lg:w-72">
+            <a
+              href={PRIMARY_STRIPE_DONATE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-4 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base shadow-lg inline-flex items-center justify-center gap-2 transition"
+            >
+              <CreditCard className="w-5 h-5" />
+              <span>Donate Now (Stripe)</span>
+              <ExternalLink className="w-4 h-4 opacity-80" />
+            </a>
+            <div className="text-center text-[11px] text-slate-200 font-semibold">
+              Accepts Visa, Mastercard, Apple Pay &amp; Google Pay
             </div>
           </div>
-        </div>
-
-        {/* Quranic Verse Callout: Surah Al-Hadid (57:11) */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white/10 border border-[#7FD4FF]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <blockquote className="text-xs sm:text-sm font-semibold italic text-slate-100 leading-relaxed">
-            &ldquo;Who is it that will lend Allah a good loan which Allah will
-            multiply [many times over] for them, and they will have an
-            honourable reward?&rdquo;
-          </blockquote>
-          <span className="text-xs font-black text-[#7FD4FF] shrink-0">
-            — Surah Al-Hadid (57:11)
-          </span>
         </div>
       </div>
 
-      {/* Main 2-Column Layout: Step 1 (Select Fund, Amount & Barclays Bank Transfer) + Step 2 (Digital Gift Aid Declaration) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left 7 Cols: Donation Packages, Fund Reference & Barclays Bank Details */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* 1. Choose Donation Type & Official Bank Reference */}
-          <div className="bg-white rounded-3xl border-2 border-[#D0E6F7] p-6 sm:p-8 shadow-sm space-y-5">
-            <div>
-              <div className="text-xs font-extrabold uppercase tracking-wider text-[#009FE3]">
-                Step 1 • Select Purpose &amp; Payment Reference
-              </div>
-              <h2 className="text-xl font-black text-[#005A9C]">
-                Choose Your Donation Category
-              </h2>
-              <p className="text-xs text-slate-600 mt-0.5">
-                Selecting a category below automatically sets the exact{" "}
-                <strong>Barclays Payment Reference</strong> for your bank
-                transfer or monthly standing order.
-              </p>
+      {/* ==================================================================== */}
+      {/* 1. OFFICIAL STRIPE & LAUNCHGOOD DONATION PACKAGES GRID               */}
+      {/* ==================================================================== */}
+      <section className="bg-white rounded-3xl border-2 border-[#D0E6F7] p-6 sm:p-8 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#009FE3]">
+              <CreditCard className="w-4 h-4" />
+              <span>Instant Online Giving • Powered by Stripe &amp; LaunchGood</span>
             </div>
+            <h2 className="text-xl sm:text-2xl font-black text-[#005A9C]">
+              Choose Your Official LIC Donation Package
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600">
+              Select any package below to proceed directly to Langley Islamic
+              Centre&apos;s official Stripe checkout or LaunchGood campaign.
+            </p>
+          </div>
+          <a
+            href={PRIMARY_STRIPE_DONATE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-extrabold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1.5 shrink-0"
+          >
+            <span>Give Any Custom Amount on Stripe</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {DONATION_FUNDS.map((fund) => {
-                const active = selectedFund.id === fund.id;
-                return (
-                  <div
-                    key={fund.id}
-                    onClick={() => setSelectedFund(fund)}
-                    className={`cursor-pointer p-4 rounded-2xl border-2 transition flex flex-col justify-between gap-2 ${
-                      active
-                        ? "bg-[#F0F7FC] border-[#005A9C] shadow-sm"
-                        : "bg-white border-slate-200 hover:border-[#009FE3]"
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {OFFICIAL_LIC_PACKAGES.map((pkg) => (
+            <a
+              key={pkg.id}
+              href={pkg.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`group rounded-2xl border-2 p-5 transition flex flex-col justify-between gap-4 ${
+                pkg.featured
+                  ? "bg-[#F0F7FC] border-[#005A9C] hover:bg-[#005A9C] hover:text-white shadow-sm"
+                  : "bg-white border-[#D0E6F7] hover:border-[#009FE3] hover:shadow-md"
+              }`}
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className={`text-2xl font-black ${
+                      pkg.featured
+                        ? "text-[#005A9C] group-hover:text-white"
+                        : "text-[#005A9C]"
                     }`}
                   >
-                    <div>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-black text-sm text-[#005A9C]">
-                          {fund.label}
-                        </span>
-                        {fund.id === "monthly" && (
-                          <Repeat className="w-4 h-4 text-[#009FE3]" />
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-600 mt-1">{fund.sub}</p>
-                    </div>
-                    <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between text-[11px]">
-                      <span className="text-slate-500 font-semibold">
-                        Bank Reference:
-                      </span>
-                      <span className="font-mono font-black px-2 py-0.5 rounded bg-[#005A9C] text-white">
-                        {fund.reference}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Suggested Packages (£25, £50, £100 + Custom) */}
-            <div className="space-y-3 pt-2">
-              <div className="text-xs font-extrabold uppercase tracking-wider text-[#005A9C]">
-                Suggested Contribution Packages
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {SUGGESTED_TIERS.map((tier) => {
-                  const Icon = tier.icon;
-                  const active = amount === tier.amount;
-                  return (
-                    <div
-                      key={tier.amount}
-                      onClick={() => handleTierSelect(tier.amount)}
-                      className={`cursor-pointer p-4 rounded-2xl border-2 transition flex flex-col justify-between ${
-                        active
-                          ? "bg-[#005A9C] text-white border-[#005A9C] shadow-md"
-                          : "bg-[#F0F7FC] text-[#005A9C] border-[#D0E6F7] hover:border-[#009FE3]"
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <Icon
-                            className={`w-5 h-5 ${
-                              active ? "text-[#7FD4FF]" : "text-[#009FE3]"
-                            }`}
-                          />
-                          <span
-                            className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                              active
-                                ? "bg-white/20 text-white"
-                                : "bg-emerald-100 text-emerald-800"
-                            }`}
-                          >
-                            +£{(tier.amount * 0.25).toFixed(2)} Gift Aid
-                          </span>
-                        </div>
-                        <div className="font-black text-base">{tier.title}</div>
-                        <p
-                          className={`text-xs mt-1 leading-relaxed ${
-                            active ? "text-slate-100" : "text-slate-600"
-                          }`}
-                        >
-                          {tier.description}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Custom Amount Input & Live Gift Aid Boost Preview */}
-              <div className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <label className="text-xs font-extrabold text-[#005A9C] shrink-0">
-                    Or Enter Custom Amount (£):
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    step="any"
-                    value={customAmountStr}
-                    onChange={(e) => handleCustomAmountChange(e.target.value)}
-                    className="w-28 h-10 px-3 rounded-xl border-2 border-[#005A9C] font-black text-base text-[#005A9C] bg-white"
-                  />
+                    {pkg.amountLabel}
+                  </span>
+                  <span
+                    className={`text-[11px] font-black px-2.5 py-0.5 rounded-full ${
+                      pkg.provider === "LaunchGood"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : pkg.featured
+                        ? "bg-[#009FE3] text-white"
+                        : "bg-[#F0F7FC] text-[#005A9C] border border-[#D0E6F7]"
+                    }`}
+                  >
+                    {pkg.provider === "LaunchGood"
+                      ? "LaunchGood"
+                      : "Stripe Checkout"}
+                  </span>
                 </div>
-                <div className="text-xs font-bold text-emerald-800 bg-emerald-100/80 px-3.5 py-2 rounded-xl border border-emerald-300">
-                  With UK Gift Aid (+25%), your{" "}
-                  <strong>£{amount.toFixed(2)}</strong> donation becomes{" "}
-                  <strong className="text-sm font-black">
-                    £{totalWithGiftAid.toFixed(2)}
-                  </strong>{" "}
-                  for LIC!
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* 2. Official Barclays Bank Account & Standing Order Details (1-Tap Copy) */}
-          <div className="bg-white rounded-3xl border-2 border-[#005A9C] p-6 sm:p-8 shadow-sm space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-              <div>
-                <div className="text-xs font-extrabold uppercase tracking-wider text-[#009FE3]">
-                  Step 2 • Direct Bank Transfer &amp; Monthly Standing Order
-                </div>
-                <h2 className="text-xl font-black text-[#005A9C]">
-                  Official LIC Barclays Bank Account Details
-                </h2>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  We accept donations via direct bank transfer and monthly
-                  standing orders (100% of your donation goes directly to LIC
-                  with zero platform commission).
+                <h3
+                  className={`text-base font-black ${
+                    pkg.featured
+                      ? "text-[#005A9C] group-hover:text-white"
+                      : "text-[#005A9C]"
+                  }`}
+                >
+                  {pkg.title}
+                </h3>
+
+                <p
+                  className={`text-xs leading-relaxed ${
+                    pkg.featured
+                      ? "text-slate-600 group-hover:text-slate-100"
+                      : "text-slate-600"
+                  }`}
+                >
+                  {pkg.description}
                 </p>
               </div>
 
+              <div
+                className={`pt-3 border-t flex items-center justify-between text-xs font-extrabold ${
+                  pkg.featured
+                    ? "border-[#D0E6F7] group-hover:border-white/20 text-[#005A9C] group-hover:text-[#7FD4FF]"
+                    : "border-slate-100 text-[#005A9C] group-hover:text-[#009FE3]"
+                }`}
+              >
+                <span>
+                  {pkg.amount
+                    ? `Donate ${pkg.amountLabel} (+£${(
+                        pkg.amount * 0.25
+                      ).toLocaleString()} Gift Aid)`
+                    : "Enter Custom Amount on Stripe"}
+                </span>
+                <ExternalLink className="w-4 h-4 shrink-0" />
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* ==================================================================== */}
+      {/* 2. HSBC DIRECT BANK TRANSFER + DIGITAL UK GIFT AID DECLARATION       */}
+      {/* ==================================================================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left 7 Cols: Official HSBC Bank Transfer Details */}
+        <div className="lg:col-span-7 bg-white rounded-3xl border-2 border-[#005A9C] p-6 sm:p-8 shadow-sm space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div className="text-xs font-extrabold uppercase tracking-wider text-[#009FE3]">
+                Direct Bank Transfer &amp; Monthly Standing Orders
+              </div>
+              <h2 className="text-xl font-black text-[#005A9C]">
+                Official LIC HSBC Bank Account Details
+              </h2>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Prefer direct bank transfer or setting up a standing order? Use
+                our official HSBC charity account details below (100% goes to
+                LIC with zero fees).
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                copyText(
+                  `Bank: HSBC\nAccount Name: Langley Islamic Centre\nSort Code: 40-42-08\nAccount Number: 02494973\nReference: ${selectedRef}`,
+                  "all"
+                )
+              }
+              className="px-4 py-2.5 rounded-xl bg-[#005A9C] hover:bg-[#003F6E] text-white font-black text-xs inline-flex items-center gap-2 shadow-sm transition shrink-0"
+            >
+              {copiedKey === "all" ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-300" />
+                  <span>All HSBC Details Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 text-[#009FE3]" />
+                  <span>Copy All HSBC Details</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-extrabold uppercase text-slate-500">
+                  Bank Name
+                </div>
+                <div className="text-base font-black text-[#005A9C] mt-0.5">
+                  HSBC Bank
+                </div>
+              </div>
+              <Landmark className="w-6 h-6 text-[#009FE3]" />
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] flex items-center justify-between gap-2">
+              <div>
+                <div className="text-[11px] font-extrabold uppercase text-slate-500">
+                  Account Name
+                </div>
+                <div className="text-base font-black text-[#005A9C] mt-0.5">
+                  Langley Islamic Centre
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={() =>
-                  copyText(
-                    `Bank: Barclays Bank\nAccount Name: Langley Islamic Centre\nSort Code: 20-78-58\nAccount Number: 63102379\nReference: ${selectedFund.reference}`,
-                    "all"
-                  )
-                }
-                className="px-4 py-2.5 rounded-xl bg-[#005A9C] hover:bg-[#003F6E] text-white font-black text-xs inline-flex items-center gap-2 shadow-sm transition shrink-0"
+                onClick={() => copyText("Langley Islamic Centre", "accName")}
+                className="px-2.5 py-1.5 rounded-lg bg-white border border-[#D0E6F7] text-xs font-bold text-[#005A9C]"
               >
-                {copiedKey === "all" ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-300" />
-                    <span>All Bank Details Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 text-[#009FE3]" />
-                    <span>Copy All Bank Details</span>
-                  </>
-                )}
+                {copiedKey === "accName" ? "✓ Copied" : "Copy"}
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {/* Bank Name */}
-              <div className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] font-extrabold uppercase text-slate-500">
-                    Bank Name
-                  </div>
-                  <div className="text-base font-black text-[#005A9C] mt-0.5">
-                    Barclays Bank
-                  </div>
-                </div>
-                <Landmark className="w-6 h-6 text-[#009FE3]" />
-              </div>
-
-              {/* Account Name */}
-              <div className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] flex items-center justify-between gap-2">
-                <div>
-                  <div className="text-[11px] font-extrabold uppercase text-slate-500">
-                    Account Name
-                  </div>
-                  <div className="text-base font-black text-[#005A9C] mt-0.5">
-                    Langley Islamic Centre
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    copyText("Langley Islamic Centre", "accountName")
-                  }
-                  className="px-2.5 py-1.5 rounded-lg bg-white border border-[#D0E6F7] text-xs font-bold text-[#005A9C] inline-flex items-center gap-1"
-                >
-                  {copiedKey === "accountName" ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-                  <span>{copiedKey === "accountName" ? "Copied" : "Copy"}</span>
-                </button>
-              </div>
-
-              {/* Sort Code */}
-              <div className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] flex items-center justify-between gap-2">
-                <div>
-                  <div className="text-[11px] font-extrabold uppercase text-slate-500">
-                    Sort Code
-                  </div>
-                  <div className="font-mono text-xl font-black text-[#005A9C] mt-0.5">
-                    20-78-58
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => copyText("20-78-58", "sortCode")}
-                  className="px-2.5 py-1.5 rounded-lg bg-white border border-[#D0E6F7] text-xs font-bold text-[#005A9C] inline-flex items-center gap-1"
-                >
-                  {copiedKey === "sortCode" ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-                  <span>{copiedKey === "sortCode" ? "Copied" : "Copy"}</span>
-                </button>
-              </div>
-
-              {/* Account Number */}
-              <div className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] flex items-center justify-between gap-2">
-                <div>
-                  <div className="text-[11px] font-extrabold uppercase text-slate-500">
-                    Account Number
-                  </div>
-                  <div className="font-mono text-xl font-black text-[#005A9C] mt-0.5">
-                    63102379
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => copyText("63102379", "accountNo")}
-                  className="px-2.5 py-1.5 rounded-lg bg-white border border-[#D0E6F7] text-xs font-bold text-[#005A9C] inline-flex items-center gap-1"
-                >
-                  {copiedKey === "accountNo" ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-                  <span>{copiedKey === "accountNo" ? "Copied" : "Copy"}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Selected Payment Reference Highlight Bar */}
-            <div className="p-4 rounded-2xl bg-[#005A9C] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] flex items-center justify-between gap-2">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-wider text-[#7FD4FF]">
-                  Payment Reference to Use in Your Banking App (
-                  {selectedFund.label})
+                <div className="text-[11px] font-extrabold uppercase text-slate-500">
+                  Sort Code (S/C)
                 </div>
-                <div className="font-mono text-lg font-black mt-0.5">
-                  {selectedFund.reference}
+                <div className="font-mono text-xl font-black text-[#005A9C] mt-0.5">
+                  40-42-08
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => copyText(selectedFund.reference, "ref")}
-                className="px-4 py-2 rounded-xl bg-[#009FE3] hover:bg-[#33B5EC] text-white font-black text-xs inline-flex items-center gap-1.5 transition shrink-0"
+                onClick={() => copyText("40-42-08", "sortCode")}
+                className="px-2.5 py-1.5 rounded-lg bg-white border border-[#D0E6F7] text-xs font-bold text-[#005A9C]"
               >
-                {copiedKey === "ref" ? (
-                  <>
-                    <Check className="w-4 h-4" />
-                    <span>Reference Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" />
-                    <span>Copy Reference &ldquo;{selectedFund.reference}&rdquo;</span>
-                  </>
-                )}
+                {copiedKey === "sortCode" ? "✓ Copied" : "Copy"}
+              </button>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] flex items-center justify-between gap-2">
+              <div>
+                <div className="text-[11px] font-extrabold uppercase text-slate-500">
+                  Account Number (A/C No)
+                </div>
+                <div className="font-mono text-xl font-black text-[#005A9C] mt-0.5">
+                  0249 4973
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => copyText("02494973", "accountNo")}
+                className="px-2.5 py-1.5 rounded-lg bg-white border border-[#D0E6F7] text-xs font-bold text-[#005A9C]"
+              >
+                {copiedKey === "accountNo" ? "✓ Copied" : "Copy"}
               </button>
             </div>
           </div>
+
+          {/* Payment Reference Selector */}
+          <div className="space-y-2 pt-2">
+            <div className="text-xs font-extrabold text-[#005A9C]">
+              Optional Bank Transfer Reference:
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {(
+                [
+                  "LIC Donation",
+                  "LIC Mthly",
+                  "LIC Zakat",
+                  "LIC Sadaqah",
+                ] as const
+              ).map((ref) => (
+                <button
+                  key={ref}
+                  type="button"
+                  onClick={() => setSelectedRef(ref)}
+                  className={`py-2 px-3 rounded-xl font-mono text-xs font-black border transition ${
+                    selectedRef === ref
+                      ? "bg-[#005A9C] text-white border-[#005A9C]"
+                      : "bg-[#F0F7FC] text-[#005A9C] border-[#D0E6F7]"
+                  }`}
+                >
+                  {ref}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] text-center font-black text-sm text-[#005A9C]">
+            Jazak Allah O Khairan Kaseera • Registered UK Charity No. 1180443
+          </div>
         </div>
 
-        {/* Right 5 Cols: Digital HMRC Gift Aid Declaration Form (+25p per £1) */}
+        {/* Right 5 Cols: Digital HMRC Gift Aid Declaration Form (+25%) */}
         <div className="lg:col-span-5 bg-white rounded-3xl border-2 border-[#D0E6F7] p-6 sm:p-8 shadow-sm space-y-5">
           <div className="space-y-1.5">
             <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-emerald-700">
               <Sparkles className="w-4 h-4 text-emerald-600" />
-              <span>Step 3 • Boost Your Donation by 25% for Free</span>
+              <span>Boost Your Donation by +25% for Free</span>
             </div>
             <h2 className="text-xl font-black text-[#005A9C]">
               Digital UK Gift Aid Declaration
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              If you are a UK taxpayer, completing this 30-second declaration
-              allows <strong>Langley Islamic Centre (Charity No. 1180443)</strong>{" "}
-              to claim an extra <strong>25p from HMRC for every £1</strong> you
-              donate, at no extra cost to you.
+              UK taxpayers can allow{" "}
+              <strong>Langley Islamic Centre (Charity No. 1180443)</strong> to
+              claim an extra <strong>25p from HMRC for every £1</strong> donated
+              via Stripe or HSBC transfer.
             </p>
           </div>
 
@@ -606,22 +557,20 @@ export default function DonationsPage() {
             <div className="p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-500 text-emerald-950 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-black uppercase">
-                  HMRC Gift Aid Logged
+                  HMRC Gift Aid Saved
                 </span>
                 <span className="font-mono text-xs font-black text-[#005A9C]">
                   {submittedGiftAid.referenceNo}
                 </span>
               </div>
               <h3 className="text-lg font-black">
-                JazakAllah Khair! Your Gift Aid Declaration Is Saved
+                JazakAllah Khair! Gift Aid Declaration Recorded
               </h3>
               <p className="text-xs text-emerald-900 leading-relaxed">
-                With your Gift Aid declaration, your{" "}
-                <strong>£{submittedGiftAid.amount.toFixed(2)}</strong> donation
-                (Reference: <strong>{submittedGiftAid.bankReference}</strong>)
-                allows LIC to reclaim{" "}
+                Your <strong>£{submittedGiftAid.amount.toFixed(2)}</strong>{" "}
+                donation lets LIC reclaim{" "}
                 <strong>+£{submittedGiftAid.boost.toFixed(2)}</strong> from
-                HMRC—making it worth{" "}
+                HMRC—worth{" "}
                 <strong>£{submittedGiftAid.totalWorth.toFixed(2)}</strong> to
                 the Centre!
               </p>
@@ -630,14 +579,36 @@ export default function DonationsPage() {
                 onClick={() => setSubmittedGiftAid(null)}
                 className="text-xs font-extrabold text-[#005A9C] underline"
               >
-                Submit another Gift Aid declaration
+                Submit another declaration
               </button>
             </div>
           ) : (
             <form onSubmit={handleSubmitGiftAid} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-extrabold text-[#005A9C] mb-1">
-                  UK Taxpayer Full Name (First &amp; Surname) *
+                  Donation Amount (£) to Gift Aid *
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={1}
+                    required
+                    value={giftAidAmount}
+                    onChange={(e) =>
+                      setGiftAidAmount(Math.max(0, Number(e.target.value)))
+                    }
+                    className="w-32 h-10 px-3 rounded-xl border-2 border-[#005A9C] font-black text-sm text-[#005A9C]"
+                  />
+                  <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1.5 rounded-xl">
+                    +£{giftAidBoost.toFixed(2)} Extra → £
+                    {totalWithGiftAid.toFixed(2)} Total
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-[#005A9C] mb-1">
+                  UK Taxpayer Full Name *
                 </label>
                 <input
                   type="text"
@@ -687,7 +658,7 @@ export default function DonationsPage() {
                     required
                     value={homeAddress}
                     onChange={(e) => setHomeAddress(e.target.value)}
-                    placeholder="House number & street name"
+                    placeholder="House number & street"
                     className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs sm:text-sm"
                   />
                 </div>
@@ -706,7 +677,6 @@ export default function DonationsPage() {
                 </div>
               </div>
 
-              {/* HMRC Mandatory Gift Aid Checkboxes */}
               <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-300 space-y-2 text-xs text-slate-800">
                 <label className="flex items-start gap-2.5 cursor-pointer font-semibold">
                   <input
@@ -718,9 +688,9 @@ export default function DonationsPage() {
                   />
                   <span>
                     I am a UK taxpayer and understand that if I pay less Income
-                    Tax and/or Capital Gains Tax in the current tax year than
-                    the amount of Gift Aid claimed on all my donations, it is my
-                    responsibility to pay any difference. *
+                    Tax and/or Capital Gains Tax than the amount of Gift Aid
+                    claimed on all my donations, it is my responsibility to pay
+                    any difference. *
                   </span>
                 </label>
 
@@ -733,7 +703,7 @@ export default function DonationsPage() {
                   />
                   <span>
                     Gift Aid all donations I make today and in the future to
-                    Langley Islamic Centre.
+                    LIC.
                   </span>
                 </label>
 
@@ -745,8 +715,7 @@ export default function DonationsPage() {
                     className="mt-0.5 w-4 h-4 rounded text-emerald-700 shrink-0"
                   />
                   <span>
-                    Also Gift Aid all donations I have made to Langley Islamic
-                    Centre in the past 4 years.
+                    Also Gift Aid donations I have made in the past 4 years.
                   </span>
                 </label>
               </div>
@@ -759,7 +728,7 @@ export default function DonationsPage() {
                 <HandCoins className="w-4 h-4" />
                 <span>
                   {submitting
-                    ? "Saving HMRC Gift Aid Declaration..."
+                    ? "Saving HMRC Gift Aid..."
                     : `Submit Gift Aid (+£${giftAidBoost.toFixed(
                         2
                       )} Extra for LIC)`}
@@ -769,8 +738,8 @@ export default function DonationsPage() {
               <p className="text-[11px] text-slate-500 flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#009FE3] shrink-0" />
                 <span>
-                  Saved securely in LIC&apos;s London database for HMRC Charity
-                  No. 1180443 Gift Aid claims.
+                  Stored securely in Supabase for LIC Charity No. 1180443 HMRC
+                  Gift Aid claims.
                 </span>
               </p>
             </form>

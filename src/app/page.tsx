@@ -28,34 +28,42 @@ import {
   Compass,
   ShieldCheck,
   Heart,
+  CreditCard,
+  ExternalLink,
 } from "lucide-react";
 import { LicLogo } from "@/components/LicLogo";
 import { useLicStore, PRAYER_TIMETABLE } from "@/lib/db";
 
+const STRIPE_CUSTOM_DONATE_URL =
+  "https://donate.stripe.com/dR6dSoaUr7oJ1m84gg";
+
 const IMPACT_TIERS = [
   {
-    amount: 25,
-    label: "£25",
-    title: "General Masjid & Community Support",
+    amount: 20,
+    label: "£20",
+    title: "Small Step, Big Impact",
     impact:
       "Helps sustain daily prayer facilities, utilities, and welcoming community activities at Spitfire Close.",
     ref: "LIC Donation",
+    stripeUrl: "https://buy.stripe.com/eVa3dK0fN6kF6Gs28a",
   },
   {
     amount: 50,
     label: "£50",
-    title: "Children's Maktab & Youth Education",
+    title: "Strengthen the Walls",
     impact:
-      "Supports Nazira Quran & Tajweed learning materials, GCSE study clinics, and youth mentoring sessions.",
+      "Supports our Masjid building fund, children's Maktab education, GCSE study clinics, and youth mentoring.",
     ref: "LIC Donation",
+    stripeUrl: "https://buy.stripe.com/3csdSogeLeRbe8U4gj",
   },
   {
     amount: 100,
     label: "£100",
-    title: "Community Welfare & Family Services",
+    title: "Donate Bricks",
     impact:
-      "Funds wider community outreach, Sisters' learning programmes, elderly wellbeing, and family events.",
+      "Builds lasting Sadaqah Jariyah for Langley's Masjid, Sisters' programmes, and community welfare services.",
     ref: "LIC Donation",
+    stripeUrl: "https://buy.stripe.com/aEU6pWbYv6kFd4QbIM",
   },
 ];
 
@@ -295,7 +303,7 @@ export default function HomePage() {
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-300/40 text-emerald-200 text-xs font-black uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
               <span>
-                100% Direct Bank Transfer • Zero Platform Fees • +25% UK Gift
+                Official LIC Stripe Checkout • HSBC Bank Transfer • +25% UK Gift
                 Aid
               </span>
             </div>
@@ -371,10 +379,40 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
+
+              {/* Direct Official LIC Stripe Checkout Buttons */}
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                <a
+                  href={selectedTier.stripeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xs sm:text-sm inline-flex items-center gap-2 shadow-lg transition"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>Donate {selectedTier.label} via Stripe</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <a
+                  href={STRIPE_CUSTOM_DONATE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-3 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/25 font-extrabold text-xs inline-flex items-center gap-1.5 transition"
+                >
+                  <span>Custom Amount (Stripe)</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <Link
+                  href="/donations"
+                  className="px-4 py-3 rounded-xl bg-[#009FE3]/30 hover:bg-[#009FE3]/50 text-[#7FD4FF] border border-[#7FD4FF]/40 font-extrabold text-xs inline-flex items-center gap-1.5 transition"
+                >
+                  <span>All 9 Tiers (£20–£10k)</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
           </div>
 
-          {/* Right 5 Cols: Instant Barclays Bank Transfer & Gift Aid Action Card */}
+          {/* Right 5 Cols: Instant HSBC Bank Transfer & Gift Aid Action Card */}
           <div className="lg:col-span-5 bg-white text-slate-900 rounded-3xl p-6 sm:p-7 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
@@ -382,7 +420,7 @@ export default function HomePage() {
                   Direct Bank Transfer &amp; Standing Orders
                 </div>
                 <h3 className="text-lg font-black text-[#005A9C]">
-                  Barclays Bank Account Details
+                  HSBC Bank Account Details
                 </h3>
               </div>
               <Landmark className="w-7 h-7 text-[#005A9C]" />
@@ -430,11 +468,11 @@ export default function HomePage() {
                 <span className="text-slate-500 font-bold">Sort Code:</span>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-base font-black text-[#005A9C]">
-                    20-78-58
+                    40-42-08
                   </span>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard("20-78-58", "sort")}
+                    onClick={() => copyToClipboard("40-42-08", "sort")}
                     className="px-2 py-0.5 rounded bg-white border border-[#D0E6F7] text-[11px] font-bold text-[#005A9C]"
                   >
                     {copiedField === "sort" ? "✓ Copied" : "Copy"}
@@ -447,11 +485,11 @@ export default function HomePage() {
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-base font-black text-[#005A9C]">
-                    63102379
+                    0249 4973
                   </span>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard("63102379", "acc")}
+                    onClick={() => copyToClipboard("02494973", "acc")}
                     className="px-2 py-0.5 rounded bg-white border border-[#D0E6F7] text-[11px] font-bold text-[#005A9C]"
                   >
                     {copiedField === "acc" ? "✓ Copied" : "Copy"}
@@ -482,7 +520,7 @@ export default function HomePage() {
                 type="button"
                 onClick={() =>
                   copyToClipboard(
-                    `Bank: Barclays Bank\nAccount Name: Langley Islamic Centre\nSort Code: 20-78-58\nAccount Number: 63102379\nReference: ${selectedRef}`,
+                    `Bank: HSBC Bank\nAccount Name: Langley Islamic Centre\nSort Code: 40-42-08\nAccount Number: 0249 4973\nReference: ${selectedRef}`,
                     "all"
                   )
                 }
@@ -633,8 +671,8 @@ export default function HomePage() {
             +25% Gift Aid
           </div>
           <p className="text-xs text-slate-600">
-            Zero platform fees via Barclays transfer + UK taxpayer Gift Aid
-            boost.
+            Official LIC Stripe checkout &amp; HSBC bank transfer + UK taxpayer
+            Gift Aid boost.
           </p>
         </div>
 
