@@ -15,7 +15,7 @@ export interface StaffIdentity {
   name: string;
   email: string;
   role: string;
-  authMethod: "Passkey (Biometric)" | "Email OTP" | "Recovery PIN";
+  authMethod: "Passkey (Biometric)" | "Email OTP / Magic Link" | "Recovery PIN";
 }
 
 // In-memory brute-force rate limiter (5 failed attempts -> 15-minute lockout)
@@ -185,11 +185,14 @@ export async function POST(req: NextRequest) {
       action?:
         | "request_email_otp"
         | "verify_email_otp"
+        | "verify_supabase_token"
         | "register_passkey"
         | "verify_passkey"
         | "verify_recovery_pin";
       email?: string;
       otp?: string;
+      accessToken?: string;
+      redirectTo?: string;
       pin?: string;
       credentialId?: string;
     };
@@ -197,7 +200,7 @@ export async function POST(req: NextRequest) {
     const action = body.action || "verify_recovery_pin";
 
     // ========================================================================
-    // 1. REQUEST PASSWORDLESS EMAIL 6-DIGIT OTP (Option 1)
+    // 1. REQUEST PASSWORDLESS EMAIL OTP / MAGIC LINK (Option 1)
     // ========================================================================
     if (action === "request_email_otp") {
       const staff = await lookupApprovedStaffByEmail(body.email || "");
@@ -212,16 +215,15 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const otpCode = String(crypto.randomInt(100000, 999999));
-      const expiresAt = now + 10 * 60 * 1000; // 10 mins
-      const otpHash = crypto
-        .createHmac("sha256", SUPABASE_PUBLISHABLE_KEY)
-        .update(`${staff.email.toLowerCase()}:${otpCode}:${expiresAt}`)
-        .digest("hex");
+      const redirectUrl =
+        body.redirectTo || "https://langley-islamic-centre.vercel.app/admin";
 
-      // Dispatch email via Supabase Auth OTP & FormSubmit email relay
-      try {
-        await fetch(`${SUPABASE_URL}/auth/v1/otp`, {
+      // Request OTP / Magic Link from Supabase Auth with explicit redirect_to
+      await fetch(
+        `${SUPABASE_URL}/auth/v1/otp?redirect_to=${encodeURIComponent(
+          redirectUrl
+        )}`,
+        {
           method: "POST",
           headers: {
             apikey: SUPABASE_PUBLISHABLE_KEY,
@@ -232,37 +234,15 @@ export async function POST(req: NextRequest) {
             create_user: true,
             data: { name: staff.name, role: staff.role },
           }),
-        });
-      } catch {
-        // Fallback to FormSubmit relay below
-      }
-
-      try {
-        await fetch(`https://formsubmit.co/ajax/${staff.email}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            _subject: `[LIC Staff Security Code] Your 6-Digit Login Passcode: ${otpCode}`,
-            Staff_Member: `${staff.name} (${staff.role})`,
-            One_Time_Passcode: otpCode,
-            Expires_In: "10 Minutes",
-            Portal_URL: "https://langley-islamic-centre.vercel.app",
-          }),
-        });
-      } catch {
-        // Handled
-      }
+        }
+      );
 
       const pendingPayload = Buffer.from(
         JSON.stringify({
           email: staff.email.toLowerCase(),
           name: staff.name,
           role: staff.role,
-          expiresAt,
-          otpHash,
+          expiresAt: now + 15 * 60 * 1000,
         })
       ).toString("base64url");
 
@@ -270,90 +250,64 @@ export async function POST(req: NextRequest) {
         ok: true,
         staffName: staff.name,
         staffRole: staff.role,
-        message: `6-digit verification passcode sent to ${staff.email} (${staff.role}).`,
+        message: `Verification email sent to ${staff.email} (${staff.role}). Enter the 6-digit code from the email OR click the login link inside the email!`,
       });
       res.cookies.set(OTP_COOKIE_NAME, pendingPayload, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         path: "/",
-        maxAge: 600,
+        maxAge: 900,
       });
       return res;
     }
 
     // ========================================================================
-    // 2. VERIFY PASSWORDLESS EMAIL 6-DIGIT OTP (Option 1)
+    // 2A. VERIFY SUPABASE MAGIC LINK ACCESS TOKEN (#access_token=...)
     // ========================================================================
-    if (action === "verify_email_otp") {
-      const pendingRaw = req.cookies.get(OTP_COOKIE_NAME)?.value;
-      if (!pendingRaw) {
+    if (action === "verify_supabase_token") {
+      const accessToken = (body.accessToken || "").trim();
+      if (!accessToken) {
         return NextResponse.json(
-          { ok: false, error: "OTP session expired. Please request a new code." },
-          { status: 400 }
-        );
-      }
-      const pending = JSON.parse(
-        Buffer.from(pendingRaw, "base64url").toString("utf-8")
-      ) as {
-        email: string;
-        name: string;
-        role: string;
-        expiresAt: number;
-        otpHash: string;
-      };
-
-      if (now > pending.expiresAt) {
-        return NextResponse.json(
-          { ok: false, error: "Passcode expired. Please request a new code." },
+          { ok: false, error: "Missing Supabase access token." },
           { status: 400 }
         );
       }
 
-      const candidateCode = (body.otp || "").trim();
-      const candidateHash = crypto
-        .createHmac("sha256", SUPABASE_PUBLISHABLE_KEY)
-        .update(`${pending.email}:${candidateCode}:${pending.expiresAt}`)
-        .digest("hex");
+      const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
+      });
 
-      // Also verify against Supabase Auth OTP if user received a Supabase Auth 6-digit token
-      let supabaseOtpValid = false;
-      try {
-        const sbVerify = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
-          method: "POST",
-          headers: {
-            apikey: SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            type: "email",
-            email: pending.email,
-            token: candidateCode,
-          }),
-        });
-        if (sbVerify.ok) supabaseOtpValid = true;
-      } catch {
-        // Ignore
-      }
-
-      if (candidateHash !== pending.otpHash && !supabaseOtpValid) {
-        const nextCount = (record?.count || 0) + 1;
-        failedAttempts.set(ip, {
-          count: nextCount,
-          lockedUntil: nextCount >= MAX_ATTEMPTS ? now + LOCKOUT_MS : 0,
-        });
+      if (!userRes.ok) {
         return NextResponse.json(
-          { ok: false, error: "Invalid 6-digit verification code." },
+          { ok: false, error: "Invalid or expired Magic Link token." },
           { status: 401 }
         );
       }
 
-      failedAttempts.delete(ip);
+      const userData = (await userRes.json()) as { email?: string };
+      const verifiedEmail = (userData.email || "").toLowerCase();
+      const staff = await lookupApprovedStaffByEmail(verifiedEmail);
+
+      if (!staff) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `Email ${verifiedEmail} is not on the Approved LIC Staff Allowlist.`,
+          },
+          { status: 403 }
+        );
+      }
+
       const identity: StaffIdentity = {
-        name: pending.name,
-        email: pending.email,
-        role: pending.role,
-        authMethod: "Email OTP",
+        name: staff.name,
+        email: staff.email,
+        role: staff.role,
+        authMethod: "Email OTP / Magic Link",
       };
       const sessionToken = createSignedSessionCookie(identity);
       const res = NextResponse.json({ ok: true, staff: identity });
@@ -363,7 +317,116 @@ export async function POST(req: NextRequest) {
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         path: "/",
-        maxAge: 60 * 60 * 24 * 14, // 14-day remembered device session
+        maxAge: 60 * 60 * 24 * 14,
+      });
+      return res;
+    }
+
+    // ========================================================================
+    // 2B. VERIFY 6-DIGIT EMAIL OTP OR PASTED MAGIC LINK URL
+    // ========================================================================
+    if (action === "verify_email_otp") {
+      const rawInput = (body.otp || "").trim();
+
+      // If the user pasted the Magic Link URL (e.g. http://localhost:3000/#access_token=...), extract access_token or token_hash!
+      if (rawInput.includes("access_token=")) {
+        const match = rawInput.match(/access_token=([^&]+)/);
+        if (match && match[1]) {
+          const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+            headers: {
+              apikey: SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${decodeURIComponent(match[1])}`,
+            },
+          });
+          if (userRes.ok) {
+            const u = (await userRes.json()) as { email?: string };
+            const staff = await lookupApprovedStaffByEmail(u.email || "");
+            if (staff) {
+              const identity: StaffIdentity = {
+                name: staff.name,
+                email: staff.email,
+                role: staff.role,
+                authMethod: "Email OTP / Magic Link",
+              };
+              const sessionToken = createSignedSessionCookie(identity);
+              const res = NextResponse.json({ ok: true, staff: identity });
+              res.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                path: "/",
+                maxAge: 60 * 60 * 24 * 14,
+              });
+              return res;
+            }
+          }
+        }
+      }
+
+      const emailToVerify = (body.email || "").trim().toLowerCase();
+      const pendingRaw = req.cookies.get(OTP_COOKIE_NAME)?.value;
+      const pending = pendingRaw
+        ? (JSON.parse(
+            Buffer.from(pendingRaw, "base64url").toString("utf-8")
+          ) as { email: string; name: string; role: string })
+        : null;
+
+      const targetEmail = emailToVerify || pending?.email || "";
+      if (!targetEmail) {
+        return NextResponse.json(
+          { ok: false, error: "Please enter your email and request a code first." },
+          { status: 400 }
+        );
+      }
+
+      // Verify 6-digit OTP against Supabase Auth (/auth/v1/verify) for magiclink, email, or signup types
+      let verified = false;
+      for (const verifyType of ["email", "magiclink", "signup"]) {
+        const sbVerify = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_PUBLISHABLE_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: verifyType,
+            email: targetEmail,
+            token: rawInput,
+          }),
+        });
+        if (sbVerify.ok) {
+          verified = true;
+          break;
+        }
+      }
+
+      if (!verified) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "Invalid or expired 6-digit code. Please check the code in your email or click the Magic Link button inside the email.",
+          },
+          { status: 401 }
+        );
+      }
+
+      const staff = await lookupApprovedStaffByEmail(targetEmail);
+      const identity: StaffIdentity = {
+        name: staff?.name || pending?.name || "LIC Staff Member",
+        email: targetEmail,
+        role: staff?.role || pending?.role || "Trustee Admin",
+        authMethod: "Email OTP / Magic Link",
+      };
+      const sessionToken = createSignedSessionCookie(identity);
+      const res = NextResponse.json({ ok: true, staff: identity });
+      res.cookies.delete(OTP_COOKIE_NAME);
+      res.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 14,
       });
       return res;
     }

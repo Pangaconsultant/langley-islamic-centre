@@ -105,6 +105,47 @@ export const PinGate: React.FC<PinGateProps> = ({
     }
 
     let active = true;
+
+    // 1. Check if the user just clicked a Supabase Magic Link (#access_token=...)
+    if (
+      typeof window !== "undefined" &&
+      window.location.hash &&
+      window.location.hash.includes("access_token=")
+    ) {
+      const match = window.location.hash.match(/access_token=([^&]+)/);
+      if (match && match[1]) {
+        const token = decodeURIComponent(match[1]);
+        window.history.replaceState(
+          null,
+          "",
+          window.location.pathname + window.location.search
+        );
+        fetch("/api/verify-pin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "verify_supabase_token",
+            accessToken: token,
+          }),
+        })
+          .then((r) => r.json())
+          .then((data: { ok?: boolean; staff?: StaffIdentity }) => {
+            if (active && data.ok) {
+              setUnlocked(true);
+              if (data.staff) setStaffIdentity(data.staff);
+            }
+          })
+          .catch(() => {})
+          .finally(() => {
+            if (active) setCheckingSession(false);
+          });
+        return () => {
+          active = false;
+        };
+      }
+    }
+
+    // 2. Otherwise check existing HttpOnly staff session cookie
     fetch("/api/verify-pin", { method: "GET" })
       .then((r) => r.json())
       .then((data: { authenticated?: boolean; staff?: StaffIdentity }) => {
@@ -281,6 +322,10 @@ export const PinGate: React.FC<PinGateProps> = ({
         body: JSON.stringify({
           action: "request_email_otp",
           email: staffEmail.trim(),
+          redirectTo:
+            typeof window !== "undefined"
+              ? window.location.origin + window.location.pathname
+              : "https://langley-islamic-centre.vercel.app/admin",
         }),
       });
       const data = (await res.json()) as {
@@ -316,6 +361,7 @@ export const PinGate: React.FC<PinGateProps> = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "verify_email_otp",
+          email: staffEmail.trim(),
           otp: otpCode.trim(),
         }),
       });
@@ -621,17 +667,15 @@ export const PinGate: React.FC<PinGateProps> = ({
             <form onSubmit={handleVerifyEmailOtp} className="space-y-3">
               <div>
                 <label className="block text-xs font-extrabold text-[#005A9C] mb-1">
-                  Enter 6-Digit Email Verification Code *
+                  Enter 6-Digit Email Code (or Paste Magic Link URL) *
                 </label>
                 <input
                   type="text"
-                  inputMode="numeric"
-                  maxLength={6}
                   required
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value)}
-                  placeholder="123456"
-                  className="w-full h-12 px-4 rounded-xl border-2 border-[#005A9C] text-center font-mono text-xl font-black tracking-widest text-[#005A9C]"
+                  placeholder="Enter 6-digit code or paste email link"
+                  className="w-full h-12 px-4 rounded-xl border-2 border-[#005A9C] text-center font-mono text-base font-black text-[#005A9C]"
                 />
               </div>
 

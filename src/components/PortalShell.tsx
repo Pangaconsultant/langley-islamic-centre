@@ -151,6 +151,38 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
   const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Intercept Supabase Auth Magic Link redirect (#access_token=...) on any page
+    if (
+      typeof window !== "undefined" &&
+      window.location.hash &&
+      window.location.hash.includes("access_token=")
+    ) {
+      const match = window.location.hash.match(/access_token=([^&]+)/);
+      if (match && match[1]) {
+        const token = decodeURIComponent(match[1]);
+        window.history.replaceState(
+          null,
+          "",
+          window.location.pathname + window.location.search
+        );
+        fetch("/api/verify-pin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "verify_supabase_token",
+            accessToken: token,
+          }),
+        })
+          .then((r) => r.json())
+          .then((data: { ok?: boolean }) => {
+            if (data.ok && window.location.pathname === "/") {
+              window.location.href = "/admin";
+            }
+          })
+          .catch(() => {});
+      }
+    }
+
     const handleClickOutside = (e: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(e.target as Node)) {
         setOpenHubDropdown(false ? null : null);
