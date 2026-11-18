@@ -616,7 +616,6 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
               Official Site &amp; Parking Rules
             </h3>
             <ul className="space-y-1.5 text-xs text-slate-100">
-              <li>• Max 40 persons on-site at Spitfire Close (incl. staff/volunteers).</li>
               <li>• Never park in Mencap (gated next door) or the unmarked Resident Yard in front of LIC.</li>
               <li>• Permitted: Public Bays at end of LIC, Layby in front of LIC, Common Rd, Harvey Park &amp; Harrow Market.</li>
               <li>• Friday Jummah &amp; Eid Prayers held OFF-SITE at <strong>Langley Pavilion</strong>.</li>

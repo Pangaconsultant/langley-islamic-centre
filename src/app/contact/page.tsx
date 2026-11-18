@@ -220,6 +220,51 @@ export default function ContactUsPage() {
           </form>
         </div>
       </div>
+
+      {/* Official LIC Building, Street Approach & Aerial Map Photos */}
+      <div className="bg-white rounded-3xl border-2 border-[#D0E6F7] p-6 sm:p-8 shadow-sm space-y-5">
+        <div>
+          <div className="text-xs font-extrabold uppercase tracking-wider text-[#009FE3]">
+            Find Us Easily • Spitfire Close, Langley (SL3 8GY)
+          </div>
+          <h2 className="text-xl font-black text-[#005A9C]">
+            Langley Islamic Centre Building &amp; Location Photos
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="rounded-2xl overflow-hidden border border-[#D0E6F7] bg-[#F0F7FC]">
+            <img
+              src="/images/lic-building.jpg"
+              alt="Langley Islamic Centre Exterior"
+              className="w-full aspect-[4/3] object-cover"
+            />
+            <div className="p-3 text-xs font-bold text-[#005A9C]">
+              Langley Islamic Centre Front Exterior
+            </div>
+          </div>
+          <div className="rounded-2xl overflow-hidden border border-[#D0E6F7] bg-[#F0F7FC]">
+            <img
+              src="/images/spitfire-close.png"
+              alt="Spitfire Close Approach"
+              className="w-full aspect-[4/3] object-cover"
+            />
+            <div className="p-3 text-xs font-bold text-[#005A9C]">
+              Spitfire Close Street View
+            </div>
+          </div>
+          <div className="rounded-2xl overflow-hidden border border-[#D0E6F7] bg-[#F0F7FC]">
+            <img
+              src="/images/lic-aerial-map.png"
+              alt="Aerial Map of Langley Islamic Centre"
+              className="w-full aspect-[4/3] object-cover"
+            />
+            <div className="p-3 text-xs font-bold text-[#005A9C]">
+              Aerial Map — Spitfire Close &amp; Common Rd
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -514,6 +514,101 @@ export default function HomePage() {
       </section>
 
       {/* ================================================================== */}
+      {/* 2B. OUR HOME AT SPITFIRE CLOSE — OFFICIAL LIC BUILDING PHOTO GALLERY */}
+      {/* ================================================================== */}
+      <section className="bg-white rounded-[2rem] border-2 border-[#D0E6F7] p-6 sm:p-9 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-[#009FE3]">
+              <Building2 className="w-4 h-4" />
+              <span>Visit Langley Islamic Centre • Spitfire Close (SL3 8GY)</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-[#005A9C]">
+              Our Community Centre &amp; Location Gallery
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600">
+              Recognise our Spitfire Close entrance, street approach, and nearby permitted car parks before your visit.
+            </p>
+          </div>
+          <Link
+            href="/parking"
+            className="text-xs font-extrabold text-[#005A9C] hover:text-[#009FE3] inline-flex items-center gap-1.5 shrink-0"
+          >
+            <span>Open Interactive Parking Schematic</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="group rounded-3xl overflow-hidden border-2 border-[#D0E6F7] bg-[#F0F7FC] flex flex-col">
+            <div className="aspect-[4/3] w-full overflow-hidden bg-slate-200">
+              <img
+                src="/images/lic-building.jpg"
+                alt="Langley Islamic Centre Building Exterior at Spitfire Close, SL3 8GY"
+                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+              />
+            </div>
+            <div className="p-4 space-y-1">
+              <div className="text-xs font-black uppercase tracking-wider text-[#009FE3]">
+                Main Building Exterior
+              </div>
+              <h3 className="font-extrabold text-sm text-[#005A9C]">
+                Langley Islamic Centre (Spitfire Close)
+              </h3>
+              <p className="text-xs text-slate-600">
+                Front entrance to our prayer hall, Maktab classrooms, and on-site cycle rack.
+              </p>
+            </div>
+          </div>
+
+          <div className="group rounded-3xl overflow-hidden border-2 border-[#D0E6F7] bg-[#F0F7FC] flex flex-col">
+            <div className="aspect-[4/3] w-full overflow-hidden bg-slate-200">
+              <img
+                src="/images/spitfire-close.png"
+                alt="Street view approach along Spitfire Close towards Langley Islamic Centre"
+                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+              />
+            </div>
+            <div className="p-4 space-y-1">
+              <div className="text-xs font-black uppercase tracking-wider text-[#009FE3]">
+                Street Approach
+              </div>
+              <h3 className="font-extrabold text-sm text-[#005A9C]">
+                Spitfire Close Entrance View
+              </h3>
+              <p className="text-xs text-slate-600">
+                Public layby and end-of-LIC bays are permitted; Mencap (gated) &amp; Resident Yard are strictly off-limits.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/parking"
+            className="group rounded-3xl overflow-hidden border-2 border-[#D0E6F7] hover:border-[#009FE3] bg-[#F0F7FC] flex flex-col transition"
+          >
+            <div className="aspect-[4/3] w-full overflow-hidden bg-slate-200">
+              <img
+                src="/images/lic-aerial-map.png"
+                alt="Aerial satellite map of Langley Islamic Centre, Spitfire Close, Common Road and Langley High Street"
+                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+              />
+            </div>
+            <div className="p-4 space-y-1">
+              <div className="text-xs font-black uppercase tracking-wider text-emerald-700">
+                Aerial Location Map
+              </div>
+              <h3 className="font-extrabold text-sm text-[#005A9C] group-hover:text-[#009FE3]">
+                Spitfire Close, Common Rd &amp; High St
+              </h3>
+              <p className="text-xs text-slate-600">
+                Tap to inspect our interactive Red/Green parking zones &amp; Harvey Park / Harrow Market directions.
+              </p>
+            </div>
+          </Link>
+        </div>
+      </section>
+
+      {/* ================================================================== */}
       {/* 3. CHARITY IMPACT & TRUST METRICS STRIP                            */}
       {/* ================================================================== */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
