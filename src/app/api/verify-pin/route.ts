@@ -218,8 +218,59 @@ export async function POST(req: NextRequest) {
       const redirectUrl =
         body.redirectTo || "https://langley-islamic-centre.vercel.app/admin";
 
-      // Request OTP / Magic Link from Supabase Auth with explicit redirect_to
-      await fetch(
+      // 1. If RESEND_API_KEY is configured, send a 6-digit OTP directly via Resend (3,000 free emails/month, no 2/hr cap)
+      const resendKey = process.env.RESEND_API_KEY;
+      if (resendKey) {
+        const otpCode = String(crypto.randomInt(100000, 999999));
+        const expiresAt = now + 15 * 60 * 1000;
+        const otpHash = crypto
+          .createHmac("sha256", SUPABASE_PUBLISHABLE_KEY)
+          .update(`${staff.email.toLowerCase()}:${otpCode}:${expiresAt}`)
+          .digest("hex");
+
+        const resendRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "LIC Security <onboarding@resend.dev>",
+            to: [staff.email],
+            subject: `[LIC Staff Login] Your 6-Digit Code: ${otpCode}`,
+            html: `<h2>Langley Islamic Centre (LIC) Staff Login</h2><p>Assalamu Alaikum ${staff.name} (${staff.role}),</p><p>Your 6-digit login passcode is: <strong style="font-size:24px;letter-spacing:4px;">${otpCode}</strong></p><p>This code expires in 15 minutes.</p>`,
+          }),
+        });
+
+        if (resendRes.ok) {
+          const pendingPayload = Buffer.from(
+            JSON.stringify({
+              email: staff.email.toLowerCase(),
+              name: staff.name,
+              role: staff.role,
+              expiresAt,
+              otpHash,
+            })
+          ).toString("base64url");
+          const res = NextResponse.json({
+            ok: true,
+            staffName: staff.name,
+            staffRole: staff.role,
+            message: `6-digit security code sent to ${staff.email} (${staff.role}).`,
+          });
+          res.cookies.set(OTP_COOKIE_NAME, pendingPayload, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            path: "/",
+            maxAge: 900,
+          });
+          return res;
+        }
+      }
+
+      // 2. Otherwise request Magic Link from Supabase Auth (note: Supabase free built-in mailer is capped at 2 emails/hour)
+      const sbOtpRes = await fetch(
         `${SUPABASE_URL}/auth/v1/otp?redirect_to=${encodeURIComponent(
           redirectUrl
         )}`,
@@ -236,6 +287,28 @@ export async function POST(req: NextRequest) {
           }),
         }
       );
+
+      if (sbOtpRes.status === 429) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "Supabase's free built-in email server only allows 2 emails per hour (rate limit reached). Use Biometric Passkey (Tab 1) or Recovery PIN (Tab 3) right now, or connect a free Resend SMTP key in Supabase Auth → SMTP for 3,000 emails/month.",
+          },
+          { status: 429 }
+        );
+      }
+
+      if (!sbOtpRes.ok) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "Could not dispatch email via Supabase Auth. Please use Tab 1 (Biometric Passkey) or Tab 3 (Recovery PIN).",
+          },
+          { status: sbOtpRes.status }
+        );
+      }
 
       const pendingPayload = Buffer.from(
         JSON.stringify({
@@ -368,7 +441,13 @@ export async function POST(req: NextRequest) {
       const pending = pendingRaw
         ? (JSON.parse(
             Buffer.from(pendingRaw, "base64url").toString("utf-8")
-          ) as { email: string; name: string; role: string })
+          ) as {
+            email: string;
+            name: string;
+            role: string;
+            expiresAt?: number;
+            otpHash?: string;
+          })
         : null;
 
       const targetEmail = emailToVerify || pending?.email || "";
@@ -379,24 +458,37 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Verify 6-digit OTP against Supabase Auth (/auth/v1/verify) for magiclink, email, or signup types
+      // Check Resend HMAC OTP first if present
       let verified = false;
-      for (const verifyType of ["email", "magiclink", "signup"]) {
-        const sbVerify = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
-          method: "POST",
-          headers: {
-            apikey: SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            type: verifyType,
-            email: targetEmail,
-            token: rawInput,
-          }),
-        });
-        if (sbVerify.ok) {
+      if (pending?.otpHash && pending?.expiresAt && now <= pending.expiresAt) {
+        const candidateHash = crypto
+          .createHmac("sha256", SUPABASE_PUBLISHABLE_KEY)
+          .update(`${pending.email}:${rawInput}:${pending.expiresAt}`)
+          .digest("hex");
+        if (candidateHash === pending.otpHash) {
           verified = true;
-          break;
+        }
+      }
+
+      // Verify 6-digit OTP against Supabase Auth (/auth/v1/verify) for magiclink, email, or signup types
+      if (!verified) {
+        for (const verifyType of ["email", "magiclink", "signup"]) {
+          const sbVerify = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+            method: "POST",
+            headers: {
+              apikey: SUPABASE_PUBLISHABLE_KEY,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              type: verifyType,
+              email: targetEmail,
+              token: rawInput,
+            }),
+          });
+          if (sbVerify.ok) {
+            verified = true;
+            break;
+          }
         }
       }
 
