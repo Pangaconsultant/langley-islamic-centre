@@ -279,38 +279,14 @@ export default function ParkingMapPage() {
               ▼ Main Entrance &amp; Kiosk
             </text>
 
-            {/* BLUE ZONE: Cycle Rack Outside LIC */}
-            <g
-              onClick={() => setSelectedFeature(SPITFIRE_FEATURES.cycleRack)}
-              className="cursor-pointer"
-              opacity={selectedZone === "ALL" || selectedZone === "BLUE" ? 1 : 0.22}
-            >
-              <rect
-                x="165"
-                y="133"
-                width="82"
-                height="36"
-                rx="8"
-                fill="#E0F2FE"
-                stroke="#009FE3"
-                strokeWidth="2.5"
-              />
-              <text x="206" y="150" textAnchor="middle" fill="#005A9C" fontSize="10" fontWeight="900">
-                CYCLE RACK
-              </text>
-              <text x="206" y="162" textAnchor="middle" fill="#0369A1" fontSize="9" fontWeight="700">
-                (Blue Zone)
-              </text>
-            </g>
-
-            {/* GREEN ZONE 1: LAYBY IN FRONT OF LIC */}
+            {/* GREEN ZONE 1: LAYBY IN FRONT OF LIC (Left of Cycle Rack) */}
             <g
               onClick={() => setSelectedFeature(SPITFIRE_FEATURES.layby)}
               className="cursor-pointer"
               opacity={selectedZone === "ALL" || selectedZone === "GREEN" ? 1 : 0.22}
             >
               <rect
-                x="255"
+                x="165"
                 y="133"
                 width="145"
                 height="38"
@@ -319,11 +295,35 @@ export default function ParkingMapPage() {
                 stroke="#16A34A"
                 strokeWidth="3"
               />
-              <text x="327" y="150" textAnchor="middle" fill="#14532D" fontSize="11" fontWeight="900">
+              <text x="237" y="150" textAnchor="middle" fill="#14532D" fontSize="11" fontWeight="900">
                 ✓ PUBLIC LAYBY
               </text>
-              <text x="327" y="163" textAnchor="middle" fill="#166534" fontSize="9.5" fontWeight="800">
+              <text x="237" y="163" textAnchor="middle" fill="#166534" fontSize="9.5" fontWeight="800">
                 In Front of LIC (Permitted)
+              </text>
+            </g>
+
+            {/* BLUE ZONE: Cycle Rack Outside LIC (Right of Public Layby) */}
+            <g
+              onClick={() => setSelectedFeature(SPITFIRE_FEATURES.cycleRack)}
+              className="cursor-pointer"
+              opacity={selectedZone === "ALL" || selectedZone === "BLUE" ? 1 : 0.22}
+            >
+              <rect
+                x="318"
+                y="133"
+                width="82"
+                height="38"
+                rx="8"
+                fill="#E0F2FE"
+                stroke="#009FE3"
+                strokeWidth="2.5"
+              />
+              <text x="359" y="150" textAnchor="middle" fill="#005A9C" fontSize="10" fontWeight="900">
+                CYCLE RACK
+              </text>
+              <text x="359" y="162" textAnchor="middle" fill="#0369A1" fontSize="9" fontWeight="700">
+                (Blue Zone)
               </text>
             </g>
 
