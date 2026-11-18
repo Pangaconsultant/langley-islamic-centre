@@ -93,6 +93,23 @@ PART 1: TABLE & COLUMN STRUCTURE SUMMARY
    - last_login_at               timestamptz   NULL
    - created_at                  timestamptz   NOT NULL DEFAULT now()
 
+8. public.lic_gift_aid_declarations (HMRC Gift Aid +25% Tax Reclaim Declarations /donations)
+   - id                          text          PRIMARY KEY
+   - reference_no                text          NOT NULL (e.g. 'LIC-GA-2026-XXXX')
+   - donor_full_name             text          NOT NULL
+   - donor_email                 text          NOT NULL
+   - donor_phone                 text          NULL
+   - home_address                text          NOT NULL
+   - postcode                    text          NOT NULL
+   - donation_type               text          NOT NULL
+   - payment_reference           text          NOT NULL ('LIC Donation' | 'LIC Mthly' | 'LIC Zakat' | 'LIC Sadaqah')
+   - amount_gbp                  numeric(10,2) NOT NULL
+   - gift_aid_boost_gbp          numeric(10,2) NOT NULL
+   - uk_taxpayer_confirmed       boolean       NOT NULL DEFAULT true
+   - cover_past_4_years          boolean       NOT NULL DEFAULT true
+   - cover_future_donations      boolean       NOT NULL DEFAULT true
+   - created_at                  timestamptz   NOT NULL DEFAULT now()
+
 
 --------------------------------------------------------------------------------
 PART 2: COMPLETE SQL DDL SCHEMA, RLS POLICIES & TRIGGER DEFINITIONS

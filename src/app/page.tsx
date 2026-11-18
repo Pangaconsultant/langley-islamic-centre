@@ -18,6 +18,8 @@ import {
   OctagonAlert,
   Building2,
   Phone,
+  HeartHandshake,
+  Landmark,
 } from "lucide-react";
 import { LicLogo } from "@/components/LicLogo";
 import { useLicStore, PRAYER_TIMETABLE } from "@/lib/db";
@@ -116,6 +118,14 @@ const COMMUNITY_HUB_SECTIONS = [
         icon: Bot,
       },
       {
+        title: "Support Us — Donations, Zakat, Sadaqah & Gift Aid",
+        route: "/donations",
+        tag: "Charity No. 1180443",
+        description:
+          "Official LIC Barclays Bank transfer & Standing Order details (Sort Code: 20-78-58, Account: 63102379) plus digital UK Gift Aid declaration (+25%).",
+        icon: HeartHandshake,
+      },
+      {
         title: "Contact Us (Click-to-Reveal Phone & Email)",
         route: "/contact",
         tag: "Bot-Protected Contact",
@@ -153,6 +163,13 @@ export default function HomePage() {
               Welcome to our unified community portal—organized into three simple hubs: <strong>Travel &amp; Parking Hub</strong>, <strong>Student &amp; Youth Hub</strong>, and <strong>Community &amp; Neighbour Hub</strong>.
             </p>
             <div className="flex flex-wrap justify-center sm:justify-start gap-2.5 pt-1">
+              <Link
+                href="/donations"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm inline-flex items-center gap-2 shadow-sm transition"
+              >
+                <HeartHandshake className="w-4 h-4" />
+                <span>Donate &amp; Gift Aid (+25%)</span>
+              </Link>
               <a
                 href="#travel-hub"
                 className="px-4 py-2.5 rounded-xl bg-[#005A9C] hover:bg-[#003F6E] text-white font-bold text-xs sm:text-sm inline-flex items-center gap-2 shadow-sm transition"
@@ -269,6 +286,93 @@ export default function HomePage() {
             <strong>Sisters&apos; Quran Class:</strong> Wednesdays{" "}
             <strong className="text-[#7FD4FF]">13:30–14:30</strong>
           </div>
+        </div>
+      </section>
+
+      {/* ================================================================== */}
+      {/* KEY HOMEPAGE DONATIONS, SADAQAH & GIFT AID SHOWCASE                */}
+      {/* ================================================================== */}
+      <section className="bg-white rounded-3xl border-2 border-emerald-500 p-6 sm:p-8 shadow-sm space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-emerald-700">
+              <HeartHandshake className="w-4 h-4 text-emerald-600" />
+              <span>
+                Growing Together. Giving Back. • Registered UK Charity No.
+                1180443
+              </span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-[#005A9C]">
+              Please Support Langley Islamic Centre — Sadaqah, Zakat &amp;
+              Standing Orders
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              &ldquo;Charity does not decrease wealth.&rdquo; (Sahih Muslim).
+              Your donations maintain our community facilities, support Islamic
+              education, and fund youth and family programmes. UK taxpayers can
+              boost every donation by <strong>+25% via Gift Aid</strong> at no
+              extra cost.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3 shrink-0">
+            <Link
+              href="/donations"
+              className="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm inline-flex items-center gap-2 shadow-md transition"
+            >
+              <HeartHandshake className="w-4 h-4" />
+              <span>Donate &amp; Declare Gift Aid (+25%)</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Quick Bank Details & References Strip */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div className="p-3.5 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] flex items-center justify-between">
+            <div>
+              <div className="text-[11px] font-bold uppercase text-slate-500">
+                Barclays Bank Account
+              </div>
+              <div className="font-black text-sm text-[#005A9C]">
+                Langley Islamic Centre
+              </div>
+            </div>
+            <Landmark className="w-5 h-5 text-[#009FE3]" />
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7]">
+            <div className="text-[11px] font-bold uppercase text-slate-500">
+              Sort Code &amp; Account No
+            </div>
+            <div className="font-mono font-black text-sm text-[#005A9C]">
+              20-78-58 • 63102379
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7]">
+            <div className="text-[11px] font-bold uppercase text-slate-500">
+              Payment References
+            </div>
+            <div className="font-mono font-bold text-[#005A9C] text-[11px]">
+              LIC Donation • LIC Mthly • LIC Zakat • LIC Sadaqah
+            </div>
+          </div>
+
+          <Link
+            href="/donations"
+            className="p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 flex items-center justify-between transition"
+          >
+            <div>
+              <div className="text-[11px] font-black uppercase text-emerald-800">
+                Suggested Packages
+              </div>
+              <div className="font-black text-sm text-emerald-950">
+                £25 • £50 • £100 • Custom
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-emerald-700" />
+          </Link>
         </div>
       </section>
 

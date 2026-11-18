@@ -21,6 +21,7 @@ import {
   Lock,
   ChevronDown,
   Phone,
+  HeartHandshake,
 } from "lucide-react";
 import { LicLogo } from "./LicLogo";
 import { useLicStore } from "@/lib/db";
@@ -141,6 +142,13 @@ export const PUBLIC_COMMUNITY_HUBS: CommunityHub[] = [
         shortLabel: "Neighbour Liaison",
         sub: "Spitfire Close neighbour feedback & tracked Ticket ID log",
         icon: ShieldAlert,
+      },
+      {
+        href: "/donations",
+        label: "Support Us — Donations & Gift Aid (+25%)",
+        shortLabel: "Donations & Gift Aid",
+        sub: "Barclays bank details (20-78-58 / 63102379), Zakat, Sadaqah & Gift Aid form",
+        icon: HeartHandshake,
       },
       {
         href: "/contact",
@@ -349,6 +357,20 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
                 </div>
               );
             })}
+
+            {/* Prominent Donate Button in Main Header */}
+            <Link
+              href="/donations"
+              onClick={() => setOpenHubDropdown(null)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition ${
+                pathname === "/donations"
+                  ? "bg-emerald-700 text-white ring-2 ring-emerald-300"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+              }`}
+            >
+              <HeartHandshake className="w-3.5 h-3.5" />
+              <span>Donate</span>
+            </Link>
 
             {/* Staff Admin Access Dropdown Menu */}
             <div className="relative pl-2 ml-1 border-l-2 border-slate-200">
