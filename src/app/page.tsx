@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
   GraduationCap,
@@ -20,23 +20,34 @@ import {
   Phone,
   HeartHandshake,
   Landmark,
+  Copy,
+  Check,
+  Sparkles,
 } from "lucide-react";
 import { LicLogo } from "@/components/LicLogo";
 import { useLicStore, PRAYER_TIMETABLE } from "@/lib/db";
 
 const COMMUNITY_HUB_SECTIONS = [
   {
-    id: "travel-hub",
-    badge: "Hub 01 • Travel & Sustainable Parking",
-    title: "Travel & Parking Hub",
+    id: "maktab-travel-hub",
+    badge: "Maktab Education & Sustainable Travel Hub",
+    title: "Quran Classes (Maktab) & Travel Hub",
     subtitle:
-      "Everything related to arriving safely at Spitfire Close, permitted car parks (Common Rd, Harvey Park & Harrow Market), and SL3 ride-sharing.",
-    accentIcon: MapPin,
+      "Official Nazira Quran & Tajweed registration for boys aged 7–16, Spitfire Close parking schematic (Common Rd, Harvey Park & Harrow Market), and SL3 ride-sharing.",
+    accentIcon: BookOpen,
     cards: [
+      {
+        title: "LIC Maktab — Quran Classes & Student Registration",
+        route: "/quran-classes",
+        tag: "Boys 7–16 • £40/Month",
+        description:
+          "5-step digital student registration for Beginner (4:30–5:30pm), Intermediate (5:30–6:30pm) & Advanced (6:30–7:30pm) classes (Mon–Wed or Thu–Sat) + 5-min WhatsApp pickup alerts.",
+        icon: BookOpen,
+      },
       {
         title: "Interactive Spitfire Close Parking Schematic",
         route: "/parking",
-        tag: "Site Map & Google Maps",
+        tag: "Travel Hub • Site Map",
         description:
           "Accurate Spitfire Close schematic: Never park in Mencap (gated next door) or the unmarked Resident Yard in front of LIC. Shows Public Bays at end of LIC, Layby in front of LIC, Common Rd, Harvey Park & Harrow Market.",
         icon: MapPin,
@@ -44,7 +55,7 @@ const COMMUNITY_HUB_SECTIONS = [
       {
         title: "SL3 Community Car-Share Matcher",
         route: "/carpool",
-        tag: "Privacy-First Ride Share",
+        tag: "Travel Hub • Ride Share",
         description:
           "Connects SL3 Drivers and Passengers by street sector (Langley High St, Harrow Market, Trelawney Ave, London Rd) while keeping phone numbers masked until accepted.",
         icon: Car,
@@ -52,21 +63,13 @@ const COMMUNITY_HUB_SECTIONS = [
     ],
   },
   {
-    id: "student-hub",
-    badge: "Hub 02 • Education, Maktab & Careers",
-    title: "Student & Youth Hub",
+    id: "community-hub",
+    badge: "Community, Youth, Volunteering & Neighbour Hub",
+    title: "Community & Youth Hub",
     subtitle:
-      "Staggered Children's Quran classes, parent pickup alerts, GCSE/A-Level study support, and DBS-verified career mentoring.",
-    accentIcon: GraduationCap,
+      "Youth & Careers Mentoring, staggered event & bereavement condolence slots, micro-volunteering shifts, Spitfire Close neighbour liaison, Contact Us, and our 24/7 AI Helper.",
+    accentIcon: HandHeart,
     cards: [
-      {
-        title: "Children's Quran Class Parent Portal",
-        route: "/quran-classes",
-        tag: "Max 10 / 45-Min Session",
-        description:
-          "Sequential 45-min classes (16:30–18:45) with parent enrolment, mandatory parking pledge, and 5-minute SMS/WhatsApp pre-pickup alerts.",
-        icon: BookOpen,
-      },
       {
         title: "Youth Hub & Careers Mentoring Network",
         route: "/mentoring",
@@ -75,16 +78,6 @@ const COMMUNITY_HUB_SECTIONS = [
           "Public directory of vetted SL3 mentors across GCSE/A-Level Tutoring, Tech/AI, Medicine, Engineering & Apprenticeships with parent safeguarding fields.",
         icon: GraduationCap,
       },
-    ],
-  },
-  {
-    id: "community-hub",
-    badge: "Hub 03 • Events, Volunteering, Neighbours & AI Helper",
-    title: "Community & Neighbour Hub",
-    subtitle:
-      "Staggered event & bereavement slots, micro-volunteering shifts, Spitfire Close neighbour liaison, and our 24/7 AI Community Assistant.",
-    accentIcon: HandHeart,
-    cards: [
       {
         title: "Event & Bereavement Slot-Booking System",
         route: "/events",
@@ -102,14 +95,6 @@ const COMMUNITY_HUB_SECTIONS = [
         icon: HandHeart,
       },
       {
-        title: "Digital Neighbour Liaison Report Form",
-        route: "/neighbour-log",
-        tag: "Public QR Form",
-        description:
-          "Direct reporting form for Spitfire Close neighbours generating a tracked Ticket ID and alerting Operations Lead Waqar Ahmed.",
-        icon: ShieldAlert,
-      },
-      {
         title: "24/7 AI Community Assistant & Prayer Times",
         route: "/assistant",
         tag: "24/7 Instant Answers",
@@ -118,12 +103,12 @@ const COMMUNITY_HUB_SECTIONS = [
         icon: Bot,
       },
       {
-        title: "Support Us — Donations, Zakat, Sadaqah & Gift Aid",
-        route: "/donations",
-        tag: "Charity No. 1180443",
+        title: "Digital Neighbour Liaison Report Form",
+        route: "/neighbour-log",
+        tag: "Public QR Form",
         description:
-          "Official LIC Barclays Bank transfer & Standing Order details (Sort Code: 20-78-58, Account: 63102379) plus digital UK Gift Aid declaration (+25%).",
-        icon: HeartHandshake,
+          "Direct reporting form for Spitfire Close neighbours generating a tracked Ticket ID and alerting Operations Lead Waqar Ahmed.",
+        icon: ShieldAlert,
       },
       {
         title: "Contact Us (Click-to-Reveal Phone & Email)",
@@ -140,13 +125,24 @@ const COMMUNITY_HUB_SECTIONS = [
 export default function HomePage() {
   const { state } = useLicStore();
   const { currentCount, maxCapacity, activeSessionName } = state.occupancy;
+  const [copiedBank, setCopiedBank] = useState(false);
 
   const isRed = currentCount >= 37;
   const isAmber = currentCount >= 30 && currentCount < 37;
 
+  const handleCopyBankDetails = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(
+        "Bank: Barclays Bank\nAccount Name: Langley Islamic Centre\nSort Code: 20-78-58\nAccount Number: 63102379\nReference: LIC Donation"
+      );
+      setCopiedBank(true);
+      setTimeout(() => setCopiedBank(false), 2500);
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-10">
-      {/* Hero Banner with Official SVG Emblem & Live Read-Only Capacity Indicator */}
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      {/* 1. Hero Banner with Official SVG Emblem & Live Read-Only Capacity Indicator */}
       <section className="bg-white rounded-3xl border-2 border-[#D0E6F7] shadow-sm p-6 sm:p-10 flex flex-col lg:flex-row items-center justify-between gap-8">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
           <div className="bg-[#F0F7FC] p-4 rounded-2xl border border-[#D0E6F7] shrink-0">
@@ -154,43 +150,41 @@ export default function HomePage() {
           </div>
           <div className="space-y-3 max-w-xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F0F7FC] border border-[#009FE3]/30 text-[#005A9C] text-xs font-bold">
-              <span>Spitfire Close, Langley (SL3 8GY) • Community Hub Portal</span>
+              <span>
+                Spitfire Close, Langley (SL3 8GY) • Registered Charity No.
+                1180443
+              </span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-extrabold text-[#005A9C] tracking-tight">
               Langley Islamic Centre
             </h1>
             <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-              Welcome to our unified community portal—organized into three simple hubs: <strong>Travel &amp; Parking Hub</strong>, <strong>Student &amp; Youth Hub</strong>, and <strong>Community &amp; Neighbour Hub</strong>.
+              <strong>LIC is for everyone</strong> — A community built on faith,
+              strengthened by connection, and committed to Islamic education,
+              youth mentoring, and charitable giving since 2009.
             </p>
             <div className="flex flex-wrap justify-center sm:justify-start gap-2.5 pt-1">
               <Link
                 href="/donations"
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm inline-flex items-center gap-2 shadow-sm transition"
+                className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm inline-flex items-center gap-2 shadow-md transition"
               >
                 <HeartHandshake className="w-4 h-4" />
-                <span>Donate &amp; Gift Aid (+25%)</span>
+                <span>Donate &amp; Claim +25% Gift Aid</span>
               </Link>
-              <a
-                href="#travel-hub"
-                className="px-4 py-2.5 rounded-xl bg-[#005A9C] hover:bg-[#003F6E] text-white font-bold text-xs sm:text-sm inline-flex items-center gap-2 shadow-sm transition"
+              <Link
+                href="/quran-classes"
+                className="px-4 py-3 rounded-xl bg-[#005A9C] hover:bg-[#003F6E] text-white font-bold text-xs sm:text-sm inline-flex items-center gap-2 shadow-sm transition"
+              >
+                <BookOpen className="w-4 h-4 text-[#009FE3]" />
+                <span>Quran Classes Registration</span>
+              </Link>
+              <Link
+                href="/parking"
+                className="px-4 py-3 rounded-xl bg-[#F0F7FC] hover:bg-[#009FE3] hover:text-white text-[#005A9C] border border-[#009FE3]/40 font-bold text-xs sm:text-sm inline-flex items-center gap-2 transition"
               >
                 <MapPin className="w-4 h-4 text-[#009FE3]" />
-                <span>Travel Hub</span>
-              </a>
-              <a
-                href="#student-hub"
-                className="px-4 py-2.5 rounded-xl bg-[#F0F7FC] hover:bg-[#009FE3] hover:text-white text-[#005A9C] border border-[#009FE3]/40 font-bold text-xs sm:text-sm inline-flex items-center gap-2 transition"
-              >
-                <GraduationCap className="w-4 h-4 text-[#009FE3]" />
-                <span>Student Hub</span>
-              </a>
-              <a
-                href="#community-hub"
-                className="px-4 py-2.5 rounded-xl bg-[#F0F7FC] hover:bg-[#009FE3] hover:text-white text-[#005A9C] border border-[#009FE3]/40 font-bold text-xs sm:text-sm inline-flex items-center gap-2 transition"
-              >
-                <HandHeart className="w-4 h-4 text-[#009FE3]" />
-                <span>Community Hub</span>
-              </a>
+                <span>Travel &amp; Parking Map</span>
+              </Link>
             </div>
           </div>
         </div>
@@ -222,7 +216,10 @@ export default function HomePage() {
             </span>
           </div>
           <div className="text-4xl sm:text-5xl font-black my-2">
-            {currentCount} <span className="text-2xl font-bold opacity-75">/ {maxCapacity}</span>
+            {currentCount}{" "}
+            <span className="text-2xl font-bold opacity-75">
+              / {maxCapacity}
+            </span>
           </div>
           <p className="text-xs font-semibold opacity-85">
             Live Spitfire Close Headcount ({activeSessionName})
@@ -230,18 +227,139 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Live Daily Salah & Jamaat Strip + Off-Site Langley Pavilion Jummah Notice */}
-      <section className="bg-[#005A9C] text-white rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
+      {/* ================================================================== */}
+      {/* 2. PROMINENT HOMEPAGE DONATIONS, SADAQAH, ZAKAT & GIFT AID HERO    */}
+      {/* ================================================================== */}
+      <section className="bg-gradient-to-br from-[#005A9C] via-[#004A82] to-[#003863] text-white rounded-3xl p-6 sm:p-8 shadow-lg border-2 border-[#009FE3] space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-2.5 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-300/40 text-emerald-200 text-xs font-black uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+              <span>
+                Growing Together. Giving Back. • Boost Your Donation by +25%
+                with Gift Aid
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+              Support Langley Islamic Centre — Sadaqah, Zakat &amp; Standing
+              Orders
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-100 leading-relaxed">
+              &ldquo;Who is it that will lend Allah a good loan which Allah will
+              multiply [many times over] for them, and they will have an
+              honourable reward?&rdquo; <strong>(Surah Al-Hadid 57:11)</strong>.
+              100% of your bank transfer or monthly standing order goes directly
+              to sustaining our Masjid, Maktab education, and youth programmes.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+            <Link
+              href="/donations"
+              className="px-6 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm shadow-lg inline-flex items-center justify-center gap-2 transition"
+            >
+              <HeartHandshake className="w-5 h-5" />
+              <span>Open Donations &amp; Gift Aid Form</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <button
+              type="button"
+              onClick={handleCopyBankDetails}
+              className="px-5 py-4 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/25 text-white font-black text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition"
+            >
+              {copiedBank ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-300" />
+                  <span>Barclays Details Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 text-[#7FD4FF]" />
+                  <span>1-Tap Copy Bank Details</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* High-Visibility Barclays Bank Details & Suggested Giving Packages */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="p-4 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-between">
+            <div>
+              <div className="text-[11px] font-extrabold uppercase text-[#7FD4FF]">
+                Barclays Bank Account
+              </div>
+              <div className="font-black text-base text-white mt-0.5">
+                Langley Islamic Centre
+              </div>
+              <div className="text-[11px] text-slate-200 mt-0.5">
+                Charity Reg No. 1180443
+              </div>
+            </div>
+            <Landmark className="w-6 h-6 text-[#7FD4FF] shrink-0" />
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white/10 border border-white/20">
+            <div className="text-[11px] font-extrabold uppercase text-[#7FD4FF]">
+              Sort Code &amp; Account Number
+            </div>
+            <div className="font-mono font-black text-lg text-white mt-0.5">
+              20-78-58 • 63102379
+            </div>
+            <div className="text-[11px] text-emerald-300 font-bold mt-0.5">
+              ✓ Direct Transfer &amp; Standing Orders
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white/10 border border-white/20">
+            <div className="text-[11px] font-extrabold uppercase text-[#7FD4FF]">
+              Official Payment References
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {["LIC Donation", "LIC Mthly", "LIC Zakat", "LIC Sadaqah"].map(
+                (ref) => (
+                  <span
+                    key={ref}
+                    className="font-mono text-[11px] font-black px-2 py-0.5 rounded bg-white/15 text-white border border-white/20"
+                  >
+                    {ref}
+                  </span>
+                )
+              )}
+            </div>
+          </div>
+
+          <Link
+            href="/donations"
+            className="p-4 rounded-2xl bg-emerald-500/25 hover:bg-emerald-500/35 border-2 border-emerald-400/60 flex flex-col justify-between transition"
+          >
+            <div className="text-[11px] font-black uppercase text-emerald-200">
+              Packages + 25% UK Gift Aid
+            </div>
+            <div className="font-black text-base text-white mt-0.5">
+              £25 • £50 • £100 • Custom
+            </div>
+            <div className="text-xs font-extrabold text-emerald-200 inline-flex items-center gap-1 mt-1">
+              <span>Complete Digital Gift Aid</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </div>
+          </Link>
+        </div>
+      </section>
+
+      {/* 3. Live Daily Salah & Jamaat Strip + Off-Site Langley Pavilion Jummah Notice */}
+      <section className="bg-white rounded-3xl border-2 border-[#D0E6F7] p-5 sm:p-7 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-[#009FE3]" />
-            <h2 className="font-bold text-base sm:text-lg">
-              Today&apos;s Langley (SL3) Daily Jama&apos;ah Timetable (Spitfire Close)
+            <h2 className="font-black text-base sm:text-lg text-[#005A9C]">
+              Today&apos;s Langley (SL3) Daily Jama&apos;ah Timetable (Spitfire
+              Close)
             </h2>
           </div>
           <Link
             href="/assistant"
-            className="text-xs font-bold text-[#7FD4FF] hover:text-white inline-flex items-center gap-1"
+            className="text-xs font-extrabold text-[#005A9C] hover:text-[#009FE3] inline-flex items-center gap-1"
           >
             <span>Open 24/7 AI Assistant &amp; Full Timetable</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -253,16 +371,16 @@ export default function HomePage() {
             return (
               <div
                 key={p.name}
-                className={`rounded-xl p-3.5 border transition ${
+                className={`rounded-2xl p-3.5 border-2 transition ${
                   isCurrent
-                    ? "bg-[#009FE3] border-white text-white shadow-md"
-                    : "bg-white/10 border-white/15 text-white"
+                    ? "bg-[#005A9C] border-[#009FE3] text-white shadow-md"
+                    : "bg-[#F0F7FC] border-[#D0E6F7] text-[#005A9C]"
                 }`}
               >
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider opacity-90">
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
                   <span>{p.name}</span>
                   {isCurrent && (
-                    <span className="px-1.5 py-0.5 rounded bg-white text-[#005A9C] text-[10px] font-extrabold">
+                    <span className="px-1.5 py-0.5 rounded bg-[#009FE3] text-white text-[10px] font-extrabold">
                       ACTIVE
                     </span>
                   )}
@@ -274,110 +392,28 @@ export default function HomePage() {
           })}
         </div>
 
-        <div className="pt-2 border-t border-white/15 flex flex-col md:flex-row md:items-center justify-between gap-2 text-xs text-slate-100">
+        <div className="pt-3 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-2 text-xs text-slate-600">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-[#009FE3] shrink-0" />
             <span>
-              <strong>Friday Jummah &amp; Eid Prayers:</strong> Held OFF-SITE at{" "}
-              <strong>Langley Pavilion</strong> (never held at Spitfire Close).
+              <strong className="text-[#005A9C]">
+                Friday Jummah &amp; Eid Prayers:
+              </strong>{" "}
+              Held OFF-SITE at <strong>Langley Pavilion</strong> (never held at
+              Spitfire Close).
             </span>
           </div>
           <div>
-            <strong>Sisters&apos; Quran Class:</strong> Wednesdays{" "}
-            <strong className="text-[#7FD4FF]">13:30–14:30</strong>
+            <strong className="text-[#005A9C]">
+              Sisters&apos; Quran Class:
+            </strong>{" "}
+            Wednesdays <strong className="text-[#009FE3]">13:30–14:30</strong>
           </div>
         </div>
       </section>
 
       {/* ================================================================== */}
-      {/* KEY HOMEPAGE DONATIONS, SADAQAH & GIFT AID SHOWCASE                */}
-      {/* ================================================================== */}
-      <section className="bg-white rounded-3xl border-2 border-emerald-500 p-6 sm:p-8 shadow-sm space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-emerald-700">
-              <HeartHandshake className="w-4 h-4 text-emerald-600" />
-              <span>
-                Growing Together. Giving Back. • Registered UK Charity No.
-                1180443
-              </span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black text-[#005A9C]">
-              Please Support Langley Islamic Centre — Sadaqah, Zakat &amp;
-              Standing Orders
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              &ldquo;Charity does not decrease wealth.&rdquo; (Sahih Muslim).
-              Your donations maintain our community facilities, support Islamic
-              education, and fund youth and family programmes. UK taxpayers can
-              boost every donation by <strong>+25% via Gift Aid</strong> at no
-              extra cost.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3 shrink-0">
-            <Link
-              href="/donations"
-              className="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm inline-flex items-center gap-2 shadow-md transition"
-            >
-              <HeartHandshake className="w-4 h-4" />
-              <span>Donate &amp; Declare Gift Aid (+25%)</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Quick Bank Details & References Strip */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-          <div className="p-3.5 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] flex items-center justify-between">
-            <div>
-              <div className="text-[11px] font-bold uppercase text-slate-500">
-                Barclays Bank Account
-              </div>
-              <div className="font-black text-sm text-[#005A9C]">
-                Langley Islamic Centre
-              </div>
-            </div>
-            <Landmark className="w-5 h-5 text-[#009FE3]" />
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7]">
-            <div className="text-[11px] font-bold uppercase text-slate-500">
-              Sort Code &amp; Account No
-            </div>
-            <div className="font-mono font-black text-sm text-[#005A9C]">
-              20-78-58 • 63102379
-            </div>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7]">
-            <div className="text-[11px] font-bold uppercase text-slate-500">
-              Payment References
-            </div>
-            <div className="font-mono font-bold text-[#005A9C] text-[11px]">
-              LIC Donation • LIC Mthly • LIC Zakat • LIC Sadaqah
-            </div>
-          </div>
-
-          <Link
-            href="/donations"
-            className="p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 flex items-center justify-between transition"
-          >
-            <div>
-              <div className="text-[11px] font-black uppercase text-emerald-800">
-                Suggested Packages
-              </div>
-              <div className="font-black text-sm text-emerald-950">
-                £25 • £50 • £100 • Custom
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-emerald-700" />
-          </Link>
-        </div>
-      </section>
-
-      {/* ================================================================== */}
-      {/* GROUPED COMMUNITY HUBS (TRAVEL HUB, STUDENT HUB, COMMUNITY HUB)    */}
+      {/* 4. GROUPED HUBS: MAKTAB & TRAVEL HUB + COMMUNITY & YOUTH HUB       */}
       {/* ================================================================== */}
       <div className="space-y-8">
         {COMMUNITY_HUB_SECTIONS.map((hub) => {
@@ -403,7 +439,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {hub.cards.map((mod) => {
                   const Icon = mod.icon;
                   return (

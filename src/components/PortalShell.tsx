@@ -47,29 +47,6 @@ export interface CommunityHub {
 
 export const PUBLIC_COMMUNITY_HUBS: CommunityHub[] = [
   {
-    id: "home-prayer",
-    title: "Home & Prayer Hub",
-    shortTitle: "Prayer & AI Hub",
-    defaultHref: "/assistant",
-    icon: Bot,
-    items: [
-      {
-        href: "/",
-        label: "Community Home & Live Timetable",
-        shortLabel: "Home",
-        sub: "Daily Jama'ah times, live capacity & hub directory",
-        icon: Home,
-      },
-      {
-        href: "/assistant",
-        label: "24/7 AI Assistant & Prayer Times",
-        shortLabel: "Prayer & AI Helper",
-        sub: "Official timetable, Sisters' class & Langley Pavilion Jummah info",
-        icon: Bot,
-      },
-    ],
-  },
-  {
     id: "travel-hub",
     title: "Travel & Parking Hub",
     shortTitle: "Travel Hub",
@@ -93,35 +70,19 @@ export const PUBLIC_COMMUNITY_HUBS: CommunityHub[] = [
     ],
   },
   {
-    id: "student-hub",
-    title: "Student & Youth Hub",
-    shortTitle: "Student Hub",
-    defaultHref: "/quran-classes",
-    icon: GraduationCap,
-    items: [
-      {
-        href: "/quran-classes",
-        label: "Children's Quran Classes",
-        shortLabel: "Quran Classes",
-        sub: "Staggered 45-min classes (max 10/session) & 5-min pickup alerts",
-        icon: BookOpen,
-      },
-      {
-        href: "/mentoring",
-        label: "Youth & Careers Mentoring Network",
-        shortLabel: "Youth Mentoring",
-        sub: "DBS-verified tutors & career mentors (GCSE, Tech/AI, Medicine, Engineering)",
-        icon: GraduationCap,
-      },
-    ],
-  },
-  {
     id: "community-hub",
-    title: "Community & Neighbour Hub",
+    title: "Community, Youth & Neighbour Hub",
     shortTitle: "Community Hub",
-    defaultHref: "/events",
+    defaultHref: "/mentoring",
     icon: HandHeart,
     items: [
+      {
+        href: "/mentoring",
+        label: "Youth Hub & Careers Mentoring Network",
+        shortLabel: "Youth & Careers",
+        sub: "DBS-verified tutors & career mentors (GCSE/A-Level, Tech/AI, Medicine, Engineering)",
+        icon: GraduationCap,
+      },
       {
         href: "/events",
         label: "Event & Bereavement Slot-Booking",
@@ -137,18 +98,18 @@ export const PUBLIC_COMMUNITY_HUBS: CommunityHub[] = [
         icon: HandHeart,
       },
       {
+        href: "/assistant",
+        label: "Prayer Timetable & 24/7 AI Helper",
+        shortLabel: "Prayer & AI Helper",
+        sub: "Daily Jama'ah times, Sisters' Wednesday class & Langley Pavilion Jummah info",
+        icon: Bot,
+      },
+      {
         href: "/neighbour-log",
         label: "Digital Neighbour Liaison Form",
         shortLabel: "Neighbour Liaison",
         sub: "Spitfire Close neighbour feedback & tracked Ticket ID log",
         icon: ShieldAlert,
-      },
-      {
-        href: "/donations",
-        label: "Support Us — Donations & Gift Aid (+25%)",
-        shortLabel: "Donations & Gift Aid",
-        sub: "Barclays bank details (20-78-58 / 63102379), Zakat, Sadaqah & Gift Aid form",
-        icon: HeartHandshake,
       },
       {
         href: "/contact",
@@ -177,7 +138,7 @@ export const STAFF_ADMIN_MODULES = [
   {
     href: "/admin",
     label: "Admin CMS & SBC Backend",
-    sub: "Manage Timetable, Tasks, Mentors & PIN",
+    sub: "Manage Timetable, Tasks, Mentors & Security",
     icon: BarChart3,
   },
 ];
@@ -192,7 +153,7 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(e.target as Node)) {
-        setOpenHubDropdown(null);
+        setOpenHubDropdown(false ? null : null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -241,17 +202,17 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
               <span>Building Headcount: {count} / {max}</span>
             </span>
             <Link
-              href="/parking"
-              className="hidden md:inline-flex items-center gap-1 text-xs text-[#F0F7FC] hover:text-white underline font-medium"
+              href="/donations"
+              className="hidden md:inline-flex items-center gap-1 text-xs text-emerald-300 hover:text-white underline font-bold"
             >
-              <MapPin className="w-3.5 h-3.5 text-[#009FE3]" />
-              Travel &amp; Parking Hub
+              <HeartHandshake className="w-3.5 h-3.5" />
+              Donate &amp; Gift Aid (+25%)
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Main Header (Grouped Hub Navigation + Staff Admin Access Menu) */}
+      {/* Main Header: Home | Donate | Quran Classes (Maktab) | Travel Hub | Community Hub | Staff Admin Access */}
       <header className="bg-white border-b border-[#D0E6F7] sticky top-0 z-40 shadow-sm" ref={navRef}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 group shrink-0">
@@ -266,8 +227,9 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
             </div>
           </Link>
 
-          {/* Desktop Hub Navigation */}
+          {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-1.5">
+            {/* 1. Home */}
             <Link
               href="/"
               onClick={() => setOpenHubDropdown(null)}
@@ -281,6 +243,35 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
               <span>Home</span>
             </Link>
 
+            {/* 2. Prominent Donate CTA right next to Home */}
+            <Link
+              href="/donations"
+              onClick={() => setOpenHubDropdown(null)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition ${
+                pathname === "/donations"
+                  ? "bg-emerald-700 text-white ring-2 ring-emerald-300"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+              }`}
+            >
+              <HeartHandshake className="w-3.5 h-3.5" />
+              <span>Donate</span>
+            </Link>
+
+            {/* 3. Direct Quran Classes (Maktab) Link */}
+            <Link
+              href="/quran-classes"
+              onClick={() => setOpenHubDropdown(null)}
+              className={`px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition ${
+                pathname === "/quran-classes"
+                  ? "bg-[#005A9C] text-white shadow-sm"
+                  : "text-[#005A9C] hover:bg-[#F0F7FC]"
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5 text-[#009FE3]" />
+              <span>Quran Classes</span>
+            </Link>
+
+            {/* 4. Travel Hub & 5. Community Hub Dropdowns */}
             {PUBLIC_COMMUNITY_HUBS.map((hub) => {
               const HubIcon = hub.icon;
               const isHubActive =
@@ -358,21 +349,7 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
               );
             })}
 
-            {/* Prominent Donate Button in Main Header */}
-            <Link
-              href="/donations"
-              onClick={() => setOpenHubDropdown(null)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition ${
-                pathname === "/donations"
-                  ? "bg-emerald-700 text-white ring-2 ring-emerald-300"
-                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
-              }`}
-            >
-              <HeartHandshake className="w-3.5 h-3.5" />
-              <span>Donate</span>
-            </Link>
-
-            {/* Staff Admin Access Dropdown Menu */}
+            {/* 6. Staff Admin Access Dropdown Menu */}
             <div className="relative pl-2 ml-1 border-l-2 border-slate-200">
               <button
                 type="button"
@@ -440,18 +417,27 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
             </div>
           </div>
 
-          {/* Mobile Menu Trigger */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen((v) => !v)}
-            className="lg:hidden inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F0F7FC] border border-[#D0E6F7] text-[#005A9C] font-bold text-sm"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            <span>Hub Menu</span>
-          </button>
+          {/* Mobile Menu Trigger + Quick Mobile Donate Button */}
+          <div className="flex lg:hidden items-center gap-2">
+            <Link
+              href="/donations"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 text-white font-black text-xs shadow-sm"
+            >
+              <HeartHandshake className="w-4 h-4" />
+              <span>Donate</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#F0F7FC] border border-[#D0E6F7] text-[#005A9C] font-bold text-xs"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <span>Menu</span>
+            </button>
+          </div>
         </div>
 
-        {/* Contextual Hub Sub-Navigation Strip (1-Tap Switcher Inside Any Hub) */}
+        {/* Contextual Hub Sub-Navigation Strip (1-Tap Switcher Inside Travel Hub or Community Hub) */}
         {activeHub && (
           <div className="bg-[#F0F7FC] border-t border-[#D0E6F7] px-4 py-2">
             <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
@@ -483,9 +469,36 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
           </div>
         )}
 
-        {/* Mobile Drawer — Grouped by Hub */}
+        {/* Mobile Drawer — Grouped by Primary Links & Hubs */}
         {mobileMenuOpen && (
           <div className="lg:hidden bg-white border-t border-[#D0E6F7] px-4 py-4 space-y-4 max-h-[80vh] overflow-y-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Link
+                href="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-3 rounded-xl font-bold text-xs flex items-center gap-2.5 border bg-[#F0F7FC] text-[#005A9C] border-[#D0E6F7]"
+              >
+                <Home className="w-4 h-4 text-[#009FE3]" />
+                <span>Home &amp; Prayer Times</span>
+              </Link>
+              <Link
+                href="/donations"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-3 rounded-xl font-black text-xs flex items-center gap-2.5 border bg-emerald-600 text-white border-emerald-700"
+              >
+                <HeartHandshake className="w-4 h-4" />
+                <span>Donate &amp; Gift Aid (+25%)</span>
+              </Link>
+              <Link
+                href="/quran-classes"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-3 rounded-xl font-bold text-xs flex items-center gap-2.5 border bg-[#F0F7FC] text-[#005A9C] border-[#D0E6F7]"
+              >
+                <BookOpen className="w-4 h-4 text-[#009FE3]" />
+                <span>Quran Classes (Maktab)</span>
+              </Link>
+            </div>
+
             {PUBLIC_COMMUNITY_HUBS.map((hub) => (
               <div key={hub.id}>
                 <div className="text-xs font-black uppercase tracking-wider text-[#009FE3] mb-2 flex items-center gap-1.5">
@@ -580,12 +593,18 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
 
           <div>
             <h3 className="font-bold text-[#7FD4FF] uppercase tracking-wider text-xs mb-2.5">
-              Contact Us (Anti-Bot Protected) &amp; Hub Links
+              Contact Us (Anti-Bot Protected) &amp; Quick Links
             </h3>
             <div className="mb-3">
               <MaskedContactBox variant="footer" />
             </div>
             <div className="flex flex-wrap gap-2">
+              <Link
+                href="/donations"
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition"
+              >
+                Donate &amp; Gift Aid
+              </Link>
               <Link
                 href="/contact"
                 className="px-3 py-1.5 rounded-lg bg-[#009FE3] hover:bg-[#33B5EC] text-white font-bold text-xs transition"
@@ -593,16 +612,10 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
                 Contact Us Form
               </Link>
               <Link
-                href="/parking"
-                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition"
-              >
-                Travel Hub
-              </Link>
-              <Link
                 href="/quran-classes"
                 className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition"
               >
-                Student Hub
+                Quran Classes
               </Link>
               <Link
                 href="/admin"
