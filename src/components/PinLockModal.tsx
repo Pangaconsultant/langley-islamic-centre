@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Lock, ShieldCheck, Delete, KeyRound } from "lucide-react";
-import { useLicStore } from "@/lib/db";
 
 interface PinGateProps {
   title?: string;
@@ -12,23 +11,41 @@ interface PinGateProps {
 }
 
 /**
- * Confidential Trustee & Staff PIN Gate
- * Verifies against the dynamic Admin PIN stored in the LIC state (never shown on screen).
+ * Hardened Server-Verified Staff Gate
+ * - Never compares PIN against client-side state (zero PIN exposure in browser memory/DevTools)
+ * - Enforces server-side IP rate limiting (5 attempts max -> 15 min lockout)
+ * - Uses an HttpOnly SameSite=Strict session cookie (`lic_staff_session`)
  */
 export const PinGate: React.FC<PinGateProps> = ({
   title = "Authorised LIC Staff & Trustee Access",
   subtitle = "Enter your confidential 4-digit LIC administrative PIN to unlock internal controls.",
   children,
 }) => {
-  const { state } = useLicStore();
   const [pin, setPin] = useState("");
   const [unlocked, setUnlocked] = useState(false);
-  const [error, setError] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const requiredPin = state.adminPin || "2580";
+  useEffect(() => {
+    let active = true;
+    fetch("/api/verify-pin", { method: "GET" })
+      .then((r) => r.json())
+      .then((data: { authenticated?: boolean }) => {
+        if (active && data.authenticated) {
+          setUnlocked(true);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setCheckingSession(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleDigit = async (digit: string) => {
-    setError(false);
+    setErrorMsg(null);
     if (pin.length < 4) {
       const next = pin + digit;
       setPin(next);
@@ -39,27 +56,51 @@ export const PinGate: React.FC<PinGateProps> = ({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ pin: next }),
           });
-          const data = (await res.json()) as { ok?: boolean };
-          if (data.ok || next === requiredPin) {
+          const data = (await res.json()) as {
+            ok?: boolean;
+            locked?: boolean;
+            error?: string;
+            remainingAttempts?: number;
+          };
+          if (data.ok) {
             setUnlocked(true);
             return;
+          }
+          if (data.locked && data.error) {
+            setErrorMsg(data.error);
+          } else {
+            setErrorMsg(
+              `Invalid PIN. Access restricted (${
+                data.remainingAttempts ?? 4
+              } attempts remaining before 15-min lockout).`
+            );
           }
         } catch {
-          if (next === requiredPin) {
-            setUnlocked(true);
-            return;
-          }
+          setErrorMsg("Unable to verify security credentials.");
         }
-        setError(true);
         setTimeout(() => setPin(""), 450);
       }
     }
   };
 
+  const handleSignOut = async () => {
+    await fetch("/api/verify-pin", { method: "DELETE" }).catch(() => {});
+    setUnlocked(false);
+    setPin("");
+  };
+
   const handleBackspace = () => {
-    setError(false);
+    setErrorMsg(null);
     setPin((prev) => prev.slice(0, -1));
   };
+
+  if (checkingSession) {
+    return (
+      <div className="max-w-md mx-auto bg-white border-2 border-[#D0E6F7] rounded-2xl p-8 text-center my-6 text-xs font-bold text-[#005A9C]">
+        Verifying encrypted staff session...
+      </div>
+    );
+  }
 
   if (unlocked) {
     return (
@@ -67,17 +108,17 @@ export const PinGate: React.FC<PinGateProps> = ({
         <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 px-4 py-2.5 rounded-xl text-emerald-900 text-sm font-medium">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-            <span>Authorised Internal Staff / Trustee Session Active</span>
+            <span>
+              Authorised Staff Session Active (HttpOnly Encrypted Cookie •
+              Rate-Limited)
+            </span>
           </div>
           <button
-            onClick={() => {
-              setUnlocked(false);
-              setPin("");
-            }}
+            onClick={handleSignOut}
             className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white border border-emerald-300 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition"
           >
             <Lock className="w-3.5 h-3.5" />
-            Lock Internal View
+            End Session &amp; Lock
           </button>
         </div>
         {children}
@@ -101,7 +142,7 @@ export const PinGate: React.FC<PinGateProps> = ({
             <div
               key={i}
               className={`w-12 h-14 rounded-xl border-2 flex items-center justify-center text-2xl font-bold transition-all ${
-                error
+                errorMsg
                   ? "border-red-500 bg-red-50 text-red-600"
                   : filled
                   ? "border-[#005A9C] bg-[#F0F7FC] text-[#005A9C]"
@@ -114,10 +155,8 @@ export const PinGate: React.FC<PinGateProps> = ({
         })}
       </div>
 
-      {error && (
-        <p className="text-xs font-semibold text-red-600 mb-3">
-          Invalid PIN. Access restricted to authorised LIC Trustees and Staff.
-        </p>
+      {errorMsg && (
+        <p className="text-xs font-semibold text-red-600 mb-3">{errorMsg}</p>
       )}
 
       {/* Touch Keypad */}
@@ -126,7 +165,7 @@ export const PinGate: React.FC<PinGateProps> = ({
           <button
             key={num}
             type="button"
-            onClick={() => handleDigit(num)}
+            onClick={() => void handleDigit(num)}
             className="h-14 rounded-xl bg-[#F0F7FC] hover:bg-[#009FE3] hover:text-white active:scale-95 text-[#005A9C] font-bold text-xl border border-[#D0E6F7] transition flex items-center justify-center shadow-sm"
           >
             {num}
@@ -141,7 +180,7 @@ export const PinGate: React.FC<PinGateProps> = ({
         </button>
         <button
           type="button"
-          onClick={() => handleDigit("0")}
+          onClick={() => void handleDigit("0")}
           className="h-14 rounded-xl bg-[#F0F7FC] hover:bg-[#009FE3] hover:text-white active:scale-95 text-[#005A9C] font-bold text-xl border border-[#D0E6F7] transition flex items-center justify-center shadow-sm"
         >
           0
@@ -158,7 +197,9 @@ export const PinGate: React.FC<PinGateProps> = ({
 
       <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-center gap-2 text-xs text-slate-500">
         <Lock className="w-3.5 h-3.5 text-[#009FE3]" />
-        <span>Confidential Staff Access • PIN can only be reset by an Admin in /admin</span>
+        <span>
+          Protected by Server-Side Brute-Force Lockout (5 Attempts Max)
+        </span>
       </div>
     </div>
   );
