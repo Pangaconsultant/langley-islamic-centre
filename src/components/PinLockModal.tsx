@@ -561,7 +561,7 @@ export const PinGate: React.FC<PinGateProps> = ({
           }`}
         >
           <Mail className="w-3.5 h-3.5 text-[#009FE3]" />
-          <span>2. Email OTP</span>
+          <span>2. Email Magic Link</span>
         </button>
 
         <button
@@ -657,25 +657,37 @@ export const PinGate: React.FC<PinGateProps> = ({
                 <Mail className="w-4 h-4 text-[#009FE3]" />
                 <span>
                   {loadingOtp
-                    ? "Verifying Staff Allowlist & Sending OTP..."
-                    : "Send 6-Digit Email Passcode"}
+                    ? "Verifying Staff Allowlist & Sending Magic Link..."
+                    : "Send 1-Click Email Magic Login Link"}
                 </span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
           ) : (
             <form onSubmit={handleVerifyEmailOtp} className="space-y-3">
+              <div className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] text-xs text-[#005A9C] space-y-1.5">
+                <div className="font-black text-sm">
+                  ✓ Magic Login Link Sent to {staffEmail}
+                </div>
+                <p className="text-slate-600 leading-relaxed">
+                  Open the email from Supabase and click the{" "}
+                  <strong>Log In / Confirm</strong> link — it will redirect back
+                  to <strong>langley-islamic-centre.vercel.app</strong> and
+                  unlock your staff session automatically!
+                </p>
+              </div>
+
               <div>
                 <label className="block text-xs font-extrabold text-[#005A9C] mb-1">
-                  Enter 6-Digit Email Code (or Paste Magic Link URL) *
+                  Or Paste Magic Link URL / 6-Digit Code Here:
                 </label>
                 <input
                   type="text"
                   required
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value)}
-                  placeholder="Enter 6-digit code or paste email link"
-                  className="w-full h-12 px-4 rounded-xl border-2 border-[#005A9C] text-center font-mono text-base font-black text-[#005A9C]"
+                  placeholder="Paste link from email or enter 6-digit code"
+                  className="w-full h-11 px-4 rounded-xl border-2 border-[#D0E6F7] text-center font-mono text-xs sm:text-sm font-bold text-[#005A9C]"
                 />
               </div>
 
