@@ -1,0 +1,357 @@
+================================================================================
+LANGLEY ISLAMIC CENTRE (LIC) — SUPABASE POSTGRESQL DATABASE SCHEMA EXPORT
+================================================================================
+Project Name : Langley Islamic Centre
+Project ID   : mxoyobwpbkiysijgayfw
+Organization : LIC (swskrwjhsizpcxrllbgh)
+Region       : eu-west-2 (London, UK)
+API Endpoint : https://mxoyobwpbkiysijgayfw.supabase.co
+Schema       : public
+================================================================================
+
+--------------------------------------------------------------------------------
+PART 1: TABLE & COLUMN STRUCTURE SUMMARY
+--------------------------------------------------------------------------------
+
+1. public.lic_portal_state (Master Real-Time Portal State & Occupancy Store)
+   - id                          text          PRIMARY KEY (Default: 'lic_sl3_main')
+   - state                       jsonb         NOT NULL
+   - updated_at                  timestamptz   NOT NULL DEFAULT now()
+
+2. public.lic_prayer_timetable (Daily Adhan & Jama'ah Prayer Times)
+   - name                        text          PRIMARY KEY ('Fajr', 'Zuhar', 'Asr', 'Maghrib', 'Isha')
+   - adhan                       text          NOT NULL
+   - jamaat                      text          NOT NULL
+   - icon                        text          NOT NULL
+   - updated_at                  timestamptz   NOT NULL DEFAULT now()
+
+3. public.lic_visitor_checkins (Indoor Kiosk /kiosk Check-In Log for SBC Audits)
+   - id                          text          PRIMARY KEY
+   - visitor_name                text          NOT NULL
+   - travel_mode                 text          NOT NULL ('Walking', 'Bicycle', 'Car Share', 'Car / Drive')
+   - occupant_count              integer       NOT NULL DEFAULT 1
+   - activity                    text          NOT NULL ('Fajr', 'Zuhar', 'Asr', 'Maghrib', 'Isha', 'Quran Class', 'Youth Circle', 'Other')
+   - checked_in_at               timestamptz   NOT NULL DEFAULT now()
+
+4. public.lic_volunteer_tasks (Flexible Volunteer "Pick-a-Task" Board /volunteer)
+   - id                          text          PRIMARY KEY
+   - title                       text          NOT NULL
+   - category                    text          NOT NULL
+   - location                    text          NOT NULL
+   - schedule_label              text          NOT NULL
+   - duration                    text          NOT NULL
+   - status                      text          NOT NULL ('Open' | 'Claimed')
+   - claimed_by_name             text          NULL
+   - claimed_by_whatsapp         text          NULL
+
+5. public.lic_neighbour_incidents (Neighbour Liaison & Contact Us Enquiries)
+   - id                          text          PRIMARY KEY
+   - ticket_id                   text          NOT NULL (e.g. 'LIC-NL-2026-XXXX')
+   - category                    text          NOT NULL
+   - reporter_name               text          NOT NULL
+   - status                      text          NOT NULL ('Open' | 'Investigating' | 'Resolved')
+   - assigned_lead               text          NOT NULL ('Waqar Ahmed (Operations Lead)')
+   - investigation_notes         text          NULL
+
+6. public.lic_quran_students (LIC Maktab Student Registration, Assessment & Attendance)
+   - id                          text          PRIMARY KEY
+   - reference_no                text          NULL (e.g. 'LIC-MKT-2026-XXXX')
+   - session_id                  text          NOT NULL ('session-1' Beginner | 'session-2' Intermediate | 'session-3' Advanced)
+   - child_name                  text          NOT NULL
+   - date_of_birth               text          NULL
+   - age                         integer       NOT NULL
+   - school_year_group           text          NULL
+   - home_address                text          NULL
+   - postcode                    text          NULL
+   - medical_or_allergies        text          NULL
+   - parent_name                 text          NOT NULL
+   - relationship_to_student     text          NULL ('Father' | 'Mother' | 'Guardian' | 'Other')
+   - parent_phone                text          NOT NULL
+   - parent_email                text          NULL
+   - alternative_contact_phone   text          NULL
+   - current_quran_level         text          NULL
+   - learning_duration           text          NULL
+   - attending_other_maktab      boolean       DEFAULT false
+   - other_maktab_details        text          NULL
+   - previously_assessed_by_lic  boolean       DEFAULT false
+   - preferred_days              text          NULL ('Monday – Wednesday' | 'Thursday – Saturday')
+   - travel_mode                 text          NOT NULL
+   - admission_status            text          DEFAULT 'Confirmed & Enrolled'
+   - standing_order_verified     boolean       DEFAULT false
+   - digital_signature           text          NULL
+   - signature_date              text          NULL
+   - attendance                  text          NOT NULL DEFAULT 'Unmarked' ('Unmarked' | 'Present' | 'Late' | 'Absent' | 'Picked Up')
+   - enrolled_at                 text          NOT NULL
+
+
+--------------------------------------------------------------------------------
+PART 2: COMPLETE SQL DDL SCHEMA, RLS POLICIES & TRIGGER DEFINITIONS
+--------------------------------------------------------------------------------
+
+-- 1. Master Portal State Table
+create table if not exists public.lic_portal_state (
+  id text primary key,
+  state jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+-- 2. Daily Prayer Timetable Table
+create table if not exists public.lic_prayer_timetable (
+  name text primary key,
+  adhan text not null,
+  jamaat text not null,
+  icon text not null,
+  updated_at timestamptz not null default now()
+);
+
+-- 3. Indoor Kiosk Visitor Check-Ins Table
+create table if not exists public.lic_visitor_checkins (
+  id text primary key,
+  visitor_name text not null,
+  travel_mode text not null,
+  occupant_count integer not null default 1,
+  activity text not null,
+  checked_in_at timestamptz not null default now()
+);
+
+-- 4. Volunteer Pick-a-Task Scheduler Table
+create table if not exists public.lic_volunteer_tasks (
+  id text primary key,
+  title text not null,
+  category text not null,
+  location text not null,
+  schedule_label text not null,
+  duration text not null,
+  status text not null,
+  claimed_by_name text,
+  claimed_by_whatsapp text
+);
+
+-- 5. Neighbour Liaison & Contact Us Log Table
+create table if not exists public.lic_neighbour_incidents (
+  id text primary key,
+  ticket_id text not null,
+  category text not null,
+  reporter_name text not null,
+  status text not null,
+  assigned_lead text not null,
+  investigation_notes text
+);
+
+-- 6. Maktab Quran Classes Student Registration & Attendance Table
+create table if not exists public.lic_quran_students (
+  id text primary key,
+  reference_no text,
+  session_id text not null,
+  child_name text not null,
+  date_of_birth text,
+  age integer not null,
+  school_year_group text,
+  home_address text,
+  postcode text,
+  medical_or_allergies text,
+  parent_name text not null,
+  relationship_to_student text,
+  parent_phone text not null,
+  parent_email text,
+  alternative_contact_phone text,
+  current_quran_level text,
+  learning_duration text,
+  attending_other_maktab boolean default false,
+  other_maktab_details text,
+  previously_assessed_by_lic boolean default false,
+  preferred_days text,
+  travel_mode text not null,
+  admission_status text default 'Confirmed & Enrolled',
+  standing_order_verified boolean default false,
+  digital_signature text,
+  signature_date text,
+  attendance text not null default 'Unmarked',
+  enrolled_at text not null
+);
+
+-- Enable Row-Level Security (RLS) on All Tables
+alter table public.lic_portal_state enable row level security;
+alter table public.lic_prayer_timetable enable row level security;
+alter table public.lic_visitor_checkins enable row level security;
+alter table public.lic_volunteer_tasks enable row level security;
+alter table public.lic_neighbour_incidents enable row level security;
+alter table public.lic_quran_students enable row level security;
+
+-- Grant Data API Access
+grant select, insert, update on public.lic_portal_state to anon, authenticated;
+grant select, insert, update on public.lic_prayer_timetable to anon, authenticated;
+grant select, insert, update on public.lic_visitor_checkins to anon, authenticated;
+grant select, insert, update on public.lic_volunteer_tasks to anon, authenticated;
+grant select, insert, update on public.lic_neighbour_incidents to anon, authenticated;
+grant select, insert, update on public.lic_quran_students to anon, authenticated;
+
+-- Row-Level Security (RLS) Policies
+create policy "Allow public read of portal state" on public.lic_portal_state for select to anon, authenticated using (id = 'lic_sl3_main');
+create policy "Allow public insert of portal state" on public.lic_portal_state for insert to anon, authenticated with check (id = 'lic_sl3_main');
+create policy "Allow public update of portal state" on public.lic_portal_state for update to anon, authenticated using (id = 'lic_sl3_main') with check (id = 'lic_sl3_main');
+
+create policy "Public read prayer timetable" on public.lic_prayer_timetable for select to anon, authenticated using (true);
+create policy "Public upsert prayer timetable" on public.lic_prayer_timetable for insert to anon, authenticated with check (true);
+create policy "Public update prayer timetable" on public.lic_prayer_timetable for update to anon, authenticated using (true) with check (true);
+
+create policy "Public read visitor checkins" on public.lic_visitor_checkins for select to anon, authenticated using (true);
+create policy "Public upsert visitor checkins" on public.lic_visitor_checkins for insert to anon, authenticated with check (true);
+create policy "Public update visitor checkins" on public.lic_visitor_checkins for update to anon, authenticated using (true) with check (true);
+
+create policy "Public read volunteer tasks" on public.lic_volunteer_tasks for select to anon, authenticated using (true);
+create policy "Public upsert volunteer tasks" on public.lic_volunteer_tasks for insert to anon, authenticated with check (true);
+create policy "Public update volunteer tasks" on public.lic_volunteer_tasks for update to anon, authenticated using (true) with check (true);
+
+create policy "Public read neighbour incidents" on public.lic_neighbour_incidents for select to anon, authenticated using (true);
+create policy "Public upsert neighbour incidents" on public.lic_neighbour_incidents for insert to anon, authenticated with check (true);
+create policy "Public update neighbour incidents" on public.lic_neighbour_incidents for update to anon, authenticated using (true) with check (true);
+
+create policy "Public read quran students" on public.lic_quran_students for select to anon, authenticated using (true);
+create policy "Public insert quran students" on public.lic_quran_students for insert to anon, authenticated with check (true);
+create policy "Public update quran students" on public.lic_quran_students for update to anon, authenticated using (true) with check (true);
+
+-- Automatic Relational Sync Trigger Function (SECURITY INVOKER)
+create or replace function public.sync_lic_portal_state_to_tables()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  -- 1. Sync Prayer Timetable
+  if jsonb_typeof(new.state->'prayerTimetable') = 'array' then
+    insert into public.lic_prayer_timetable (name, adhan, jamaat, icon, updated_at)
+    select
+      item->>'name',
+      item->>'adhan',
+      item->>'jamaat',
+      coalesce(item->>'icon', 'Sun'),
+      now()
+    from jsonb_array_elements(new.state->'prayerTimetable') as item
+    on conflict (name) do update
+      set adhan = excluded.adhan,
+          jamaat = excluded.jamaat,
+          icon = excluded.icon,
+          updated_at = now();
+  end if;
+
+  -- 2. Sync Visitor Check-Ins
+  if jsonb_typeof(new.state->'checkIns') = 'array' then
+    insert into public.lic_visitor_checkins (id, visitor_name, travel_mode, occupant_count, activity, checked_in_at)
+    select
+      item->>'id',
+      item->>'visitorName',
+      item->>'travelMode',
+      coalesce((item->>'occupantCount')::integer, 1),
+      item->>'activity',
+      coalesce((item->>'timestamp')::timestamptz, now())
+    from jsonb_array_elements(new.state->'checkIns') as item
+    on conflict (id) do update
+      set visitor_name = excluded.visitor_name,
+          travel_mode = excluded.travel_mode,
+          occupant_count = excluded.occupant_count,
+          activity = excluded.activity;
+  end if;
+
+  -- 3. Sync Volunteer Tasks
+  if jsonb_typeof(new.state->'volunteerTasks') = 'array' then
+    insert into public.lic_volunteer_tasks (id, title, category, location, schedule_label, duration, status, claimed_by_name, claimed_by_whatsapp)
+    select
+      item->>'id',
+      item->>'title',
+      item->>'category',
+      item->>'location',
+      item->>'scheduleLabel',
+      item->>'duration',
+      item->>'status',
+      item->>'claimedByName',
+      item->>'claimedByWhatsApp'
+    from jsonb_array_elements(new.state->'volunteerTasks') as item
+    on conflict (id) do update
+      set title = excluded.title,
+          category = excluded.category,
+          location = excluded.location,
+          schedule_label = excluded.schedule_label,
+          duration = excluded.duration,
+          status = excluded.status,
+          claimed_by_name = excluded.claimed_by_name,
+          claimed_by_whatsapp = excluded.claimed_by_whatsapp;
+  end if;
+
+  -- 4. Sync Neighbour Incidents
+  if jsonb_typeof(new.state->'neighbourIncidents') = 'array' then
+    insert into public.lic_neighbour_incidents (id, ticket_id, category, reporter_name, status, assigned_lead, investigation_notes)
+    select
+      item->>'id',
+      item->>'ticketId',
+      item->>'category',
+      item->>'reporterName',
+      item->>'status',
+      item->>'assignedLead',
+      item->>'investigationNotes'
+    from jsonb_array_elements(new.state->'neighbourIncidents') as item
+    on conflict (id) do update
+      set status = excluded.status,
+          investigation_notes = excluded.investigation_notes;
+  end if;
+
+  -- 5. Sync Quran Students & Maktab Registrations
+  if jsonb_typeof(new.state->'quranStudents') = 'array' then
+    insert into public.lic_quran_students (
+      id, reference_no, session_id, child_name, date_of_birth, age,
+      school_year_group, home_address, postcode, medical_or_allergies,
+      parent_name, relationship_to_student, parent_phone, parent_email,
+      alternative_contact_phone, current_quran_level, learning_duration,
+      attending_other_maktab, other_maktab_details, previously_assessed_by_lic,
+      preferred_days, travel_mode, admission_status, standing_order_verified,
+      digital_signature, signature_date, attendance, enrolled_at
+    )
+    select
+      item->>'id',
+      coalesce(item->>'referenceNo', 'LIC-MKT-' || upper(item->>'id')),
+      item->>'sessionId',
+      item->>'childName',
+      item->>'dateOfBirth',
+      coalesce((item->>'age')::integer, 8),
+      item->>'schoolYearGroup',
+      item->>'homeAddress',
+      item->>'postcode',
+      item->>'medicalOrAllergies',
+      item->>'parentName',
+      item->>'relationshipToStudent',
+      item->>'parentPhone',
+      item->>'parentEmail',
+      item->>'alternativeContactPhone',
+      item->>'currentQuranLevel',
+      item->>'learningDuration',
+      coalesce((item->>'attendingOtherMaktab')::boolean, false),
+      item->>'otherMaktabDetails',
+      coalesce((item->>'previouslyAssessed_by_lic')::boolean, false),
+      coalesce(item->>'preferredDays', 'Monday – Wednesday'),
+      item->>'travelMode',
+      coalesce(item->>'admissionStatus', 'Confirmed & Enrolled'),
+      coalesce((item->>'standingOrderVerified')::boolean, true),
+      item->>'digitalSignature',
+      item->>'signatureDate',
+      coalesce(item->>'attendance', 'Unmarked'),
+      coalesce(item->>'enrolledAt', '2026-09-01')
+    from jsonb_array_elements(new.state->'quranStudents') as item
+    on conflict (id) do update
+      set session_id = excluded.session_id,
+          admission_status = excluded.admission_status,
+          standing_order_verified = excluded.standing_order_verified,
+          attendance = excluded.attendance;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger trg_sync_lic_portal_state
+after insert or update on public.lic_portal_state
+for each row
+execute function public.sync_lic_portal_state_to_tables();
+
+-- Enable Supabase Realtime
+alter publication supabase_realtime add table public.lic_portal_state;
