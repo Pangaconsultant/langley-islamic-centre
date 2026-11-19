@@ -19,6 +19,8 @@ const SESSION_COOKIE_NAME = "lic_staff_session";
 const OTP_COOKIE_NAME = "lic_pending_otp";
 
 const ALLOWED_REDIRECT_ORIGINS = [
+  "https://langleyislamiccentre.co.uk",
+  "https://www.langleyislamiccentre.co.uk",
   "https://langley-islamic-centre.vercel.app",
   "http://localhost:3005",
   "http://localhost:3000",
