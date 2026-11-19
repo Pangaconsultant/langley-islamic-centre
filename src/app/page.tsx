@@ -433,7 +433,7 @@ export default function HomePage() {
                   <BookOpen className="w-6 h-6 text-[#7FD4FF]" />
                 </div>
                 <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-white text-[#005A9C] border border-[#D0E6F7]">
-                  Boys 7–16 • £40/Month
+                  Boys Aged 7–16
                 </span>
               </div>
               <h3 className="text-lg font-black text-[#005A9C] group-hover:text-[#009FE3] transition">

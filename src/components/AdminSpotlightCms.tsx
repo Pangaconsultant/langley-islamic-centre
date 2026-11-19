@@ -85,7 +85,7 @@ const QUICK_PRESETS: Array<{
         "Structured Nazira Quran & Tajweed classes running 3 days a week (Mon–Wed or Thu–Sat) with teacher placement assessments and 5-minute WhatsApp pickup alerts.",
       highlights: [
         "Beginner, Intermediate & Advanced levels for Boys aged 7–16",
-        "£40/month Standing Order due by the 28th of each month",
+        "3 days/week cohorts (Mon–Wed or Thu–Sat) with teacher placement assessment",
         "Online 5-step registration with instant application status tracking",
       ],
       primaryCtaLabel: "Register Your Child",

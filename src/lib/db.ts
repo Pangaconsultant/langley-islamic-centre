@@ -354,7 +354,7 @@ export const DEFAULT_SPOTLIGHT_SLIDES: HomepageSpotlightSlide[] = [
       "Structured Nazira Quran & Tajweed classes running 3 days a week (Mon–Wed or Thu–Sat) with teacher placement assessments and 5-minute WhatsApp pickup alerts.",
     highlights: [
       "Beginner, Intermediate & Advanced levels for Boys aged 7–16",
-      "£40/month Standing Order due by the 28th of each month",
+      "3 days/week cohorts (Mon–Wed or Thu–Sat) with teacher placement assessment",
       "Online 5-step registration with instant application status tracking",
     ],
     primaryCtaLabel: "Register Your Child",
@@ -990,6 +990,15 @@ export function getDbState(): LicDatabaseState {
     }
     if (!Array.isArray(parsed.spotlightSlides)) {
       parsed.spotlightSlides = DEFAULT_SPOTLIGHT_SLIDES;
+    } else {
+      parsed.spotlightSlides = parsed.spotlightSlides.map((s) => ({
+        ...s,
+        highlights: (s.highlights || []).map((h) =>
+          h.includes("£40/month")
+            ? "3 days/week cohorts (Mon–Wed or Thu–Sat) with teacher placement assessment"
+            : h
+        ),
+      }));
     }
     if (!parsed.adminPin) parsed.adminPin = DEFAULT_ENV_PIN;
     return parsed;
@@ -1049,6 +1058,15 @@ export function useLicStore() {
         }
         if (!Array.isArray(cloud.spotlightSlides)) {
           cloud.spotlightSlides = DEFAULT_SPOTLIGHT_SLIDES;
+        } else {
+          cloud.spotlightSlides = cloud.spotlightSlides.map((s) => ({
+            ...s,
+            highlights: (s.highlights || []).map((h) =>
+              h.includes("£40/month")
+                ? "3 days/week cohorts (Mon–Wed or Thu–Sat) with teacher placement assessment"
+                : h
+            ),
+          }));
         }
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cloud));
         setState(cloud);

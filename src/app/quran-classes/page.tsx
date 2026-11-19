@@ -396,7 +396,7 @@ export default function QuranClassesPage() {
           <div className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-[#009FE3]">
             <BookOpen className="w-4 h-4" />
             <span>
-              Student Hub • Nazira Quran &amp; Tajweed (Boys Aged 7–16 • £40/Month)
+              Student Hub • Nazira Quran &amp; Tajweed (Boys Aged 7–16)
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-[#005A9C]">
