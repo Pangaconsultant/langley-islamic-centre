@@ -11,7 +11,6 @@ import {
   Megaphone,
   Pause,
   Play,
-  SlidersHorizontal,
 } from "lucide-react";
 import type { HomepageSpotlightSlide, SpotlightTheme } from "@/lib/db";
 
@@ -243,68 +242,58 @@ export function HomepageSpotlightCarousel({
       </div>
 
       {/* Carousel Controls Bar */}
-      <div className="mt-6 pt-4 border-t border-white/15 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          {activeSlides.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={goPrev}
-                aria-label="Previous spotlight slide"
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/25 border border-white/20 text-white transition"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={goNext}
-                aria-label="Next spotlight slide"
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/25 border border-white/20 text-white transition"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsPaused((p) => !p)}
-                aria-label={isPaused ? "Resume slideshow" : "Pause slideshow"}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/25 border border-white/20 text-white transition"
-                title={isPaused ? "Resume auto-rotate" : "Pause auto-rotate"}
-              >
-                {isPaused ? (
-                  <Play className="w-3.5 h-3.5" />
-                ) : (
-                  <Pause className="w-3.5 h-3.5" />
-                )}
-              </button>
+      {activeSlides.length > 1 && (
+        <div className="mt-6 pt-4 border-t border-white/15 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={goPrev}
+              aria-label="Previous spotlight slide"
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/25 border border-white/20 text-white transition"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              aria-label="Next spotlight slide"
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/25 border border-white/20 text-white transition"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsPaused((p) => !p)}
+              aria-label={isPaused ? "Resume slideshow" : "Pause slideshow"}
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/25 border border-white/20 text-white transition"
+              title={isPaused ? "Resume auto-rotate" : "Pause auto-rotate"}
+            >
+              {isPaused ? (
+                <Play className="w-3.5 h-3.5" />
+              ) : (
+                <Pause className="w-3.5 h-3.5" />
+              )}
+            </button>
 
-              {/* Dot Indicators */}
-              <div className="flex items-center gap-1.5 ml-2">
-                {activeSlides.map((s, idx) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => setCurrentIndex(idx)}
-                    aria-label={`Go to slide ${idx + 1}: ${s.title}`}
-                    className={`h-2.5 rounded-full transition-all ${
-                      idx === currentIndex
-                        ? theme.dotActive
-                        : "w-2.5 bg-white/35 hover:bg-white/60"
-                    }`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+            {/* Dot Indicators */}
+            <div className="flex items-center gap-1.5 ml-2">
+              {activeSlides.map((s, idx) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setCurrentIndex(idx)}
+                  aria-label={`Go to slide ${idx + 1}: ${s.title}`}
+                  className={`h-2.5 rounded-full transition-all ${
+                    idx === currentIndex
+                      ? theme.dotActive
+                      : "w-2.5 bg-white/35 hover:bg-white/60"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
         </div>
-
-        <Link
-          href="/admin"
-          className="text-[11px] font-bold text-white/70 hover:text-white inline-flex items-center gap-1.5 transition"
-        >
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-          <span>Staff: Edit What&apos;s On in Admin</span>
-        </Link>
-      </div>
+      )}
     </section>
   );
 }

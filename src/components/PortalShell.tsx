@@ -22,6 +22,7 @@ import {
   ChevronDown,
   Phone,
   HeartHandshake,
+  Megaphone,
 } from "lucide-react";
 import { LicLogo } from "./LicLogo";
 import { useLicStore } from "@/lib/db";
@@ -123,6 +124,12 @@ export const PUBLIC_COMMUNITY_HUBS: CommunityHub[] = [
 ];
 
 export const STAFF_ADMIN_MODULES = [
+  {
+    href: "/admin?tab=spotlight",
+    label: "Edit What's On Spotlight",
+    sub: "Manage Homepage Promo Carousel & Guidance",
+    icon: Megaphone,
+  },
   {
     href: "/kiosk",
     label: "Indoor Kiosk",
