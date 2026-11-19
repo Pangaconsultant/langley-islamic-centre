@@ -205,11 +205,17 @@ export default function ParkingMapPage() {
           </div>
         </div>
 
+        {/* Mobile Swipe Hint */}
+        <div className="sm:hidden text-[11px] font-extrabold text-[#005A9C] bg-[#F0F7FC] border border-[#D0E6F7] rounded-xl px-3 py-2 flex items-center justify-between">
+          <span>↔ Swipe map horizontally to inspect Spitfire Close</span>
+          <span className="text-[#009FE3]">Tap any zone</span>
+        </div>
+
         {/* Interactive SVG Schematic of Spitfire Close */}
-        <div className="w-full overflow-x-auto bg-[#F0F7FC] rounded-2xl border-2 border-[#D0E6F7] p-4">
+        <div className="w-full overflow-x-auto bg-[#F0F7FC] rounded-2xl border-2 border-[#D0E6F7] p-3 sm:p-4">
           <svg
             viewBox="0 0 920 430"
-            className="w-full min-w-[720px] h-auto select-none"
+            className="w-full min-w-[680px] h-auto select-none"
             role="img"
             aria-label="Accurate Spitfire Close Site Schematic showing Mencap with metal gates next door, Unmarked Resident Parking Yard in front of LIC, Public Layby in front of LIC, and Public Parking Bays at the end of LIC"
           >
@@ -273,7 +279,7 @@ export default function ParkingMapPage() {
               LANGLEY ISLAMIC CENTRE
             </text>
             <text x="270" y="84" textAnchor="middle" fill="#7FD4FF" fontSize="11" fontWeight="700">
-              (LIC Building • Max 40 Persons)
+              (LIC Building • Spitfire Close SL3 8GY)
             </text>
             <text x="270" y="106" textAnchor="middle" fill="#FFFFFF" fontSize="11" fontWeight="800">
               ▼ Main Entrance &amp; Kiosk

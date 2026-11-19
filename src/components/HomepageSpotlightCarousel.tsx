@@ -141,15 +141,15 @@ export function HomepageSpotlightCarousel({
       aria-label="What's On at Langley Islamic Centre"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className={`relative overflow-hidden text-white rounded-[2rem] border-2 shadow-xl p-6 sm:p-9 lg:p-10 transition-colors duration-500 ${theme.wrapper}`}
+      className={`relative overflow-hidden text-white rounded-3xl sm:rounded-[2rem] border-2 shadow-xl p-5 sm:p-8 lg:p-10 transition-colors duration-500 ${theme.wrapper}`}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 lg:gap-9 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-7 lg:gap-9 items-center">
         {/* Left 7 Columns: Spotlight Content */}
-        <div className="lg:col-span-7 space-y-5">
+        <div className="lg:col-span-7 space-y-4 sm:space-y-5">
           {/* Top Pill Bar */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span
-              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-[11px] font-black uppercase tracking-wider ${theme.badge}`}
+              className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full border text-[10px] sm:text-[11px] font-black uppercase tracking-wider ${theme.badge}`}
             >
               <Megaphone className="w-3.5 h-3.5 shrink-0" />
               <span>{slide.badge || "WHAT'S ON AT LIC"}</span>
@@ -163,24 +163,24 @@ export function HomepageSpotlightCarousel({
           </div>
 
           {/* Title & Description */}
-          <div className="space-y-2.5">
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+          <div className="space-y-2">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight leading-tight">
               {slide.title}
             </h2>
-            <p className="text-sm sm:text-[15px] text-white/90 leading-relaxed">
+            <p className="text-xs sm:text-[15px] text-white/90 leading-relaxed">
               {slide.description}
             </p>
           </div>
 
           {/* Highlight Bullets */}
           {slide.highlights && slide.highlights.filter(Boolean).length > 0 && (
-            <ul className="space-y-2 bg-white/10 border border-white/15 rounded-2xl p-4">
+            <ul className="space-y-1.5 sm:space-y-2 bg-white/10 border border-white/15 rounded-2xl p-3.5 sm:p-4">
               {slide.highlights
                 .filter((h) => h.trim().length > 0)
                 .map((item, idx) => (
                   <li
                     key={idx}
-                    className="flex items-start gap-2.5 text-xs sm:text-sm text-white/95 font-medium"
+                    className="flex items-start gap-2 text-xs sm:text-sm text-white/95 font-medium"
                   >
                     <CheckCircle2
                       className={`w-4 h-4 shrink-0 mt-0.5 ${theme.checkIcon}`}
@@ -192,13 +192,13 @@ export function HomepageSpotlightCarousel({
           )}
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-3 pt-1">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-1">
             {slide.primaryCtaLabel && slide.primaryCtaHref && (
               <CtaButton
                 href={slide.primaryCtaHref}
                 label={slide.primaryCtaLabel}
                 showArrow={true}
-                className={`px-5 py-3 rounded-2xl font-black text-xs sm:text-sm inline-flex items-center gap-2 shadow-lg transition ${theme.primaryBtn}`}
+                className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl font-black text-xs sm:text-sm inline-flex items-center gap-2 shadow-lg transition ${theme.primaryBtn}`}
               />
             )}
             {slide.secondaryCtaLabel && slide.secondaryCtaHref && (
@@ -206,7 +206,7 @@ export function HomepageSpotlightCarousel({
                 href={slide.secondaryCtaHref}
                 label={slide.secondaryCtaLabel}
                 showArrow={false}
-                className={`px-4 py-3 rounded-2xl font-extrabold text-xs sm:text-sm inline-flex items-center gap-2 transition ${theme.secondaryBtn}`}
+                className={`px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl font-extrabold text-xs sm:text-sm inline-flex items-center gap-2 transition ${theme.secondaryBtn}`}
               />
             )}
           </div>
@@ -214,7 +214,7 @@ export function HomepageSpotlightCarousel({
 
         {/* Right 5 Columns: Visual Preview Card */}
         <div className="lg:col-span-5">
-          <div className="relative rounded-3xl overflow-hidden border-2 border-white/25 bg-black/25 shadow-2xl aspect-[16/10] sm:aspect-[4/3]">
+          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-white/25 bg-black/25 shadow-2xl aspect-[16/9] sm:aspect-[4/3]">
             {slide.imageUrl ? (
               <img
                 src={slide.imageUrl}

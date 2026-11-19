@@ -253,14 +253,16 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
 
       {/* Main Header: Home | Donate | Quran Classes (Maktab) | Travel Hub | Community Hub | Staff Admin Access */}
       <header className="bg-white border-b border-[#D0E6F7] sticky top-0 z-40 shadow-sm" ref={navRef}>
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-3 group shrink-0">
-            <LicLogo size="sm" showText={false} />
-            <div>
-              <div className="text-base sm:text-lg font-extrabold tracking-tight text-[#005A9C] leading-none">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 group min-w-0 flex-1 lg:flex-initial">
+            <div className="shrink-0">
+              <LicLogo size="sm" showText={false} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm sm:text-base md:text-lg font-extrabold tracking-tight text-[#005A9C] leading-tight truncate">
                 LANGLEY ISLAMIC CENTRE
               </div>
-              <div className="text-xs font-semibold text-[#009FE3] mt-0.5">
+              <div className="text-[11px] sm:text-xs font-semibold text-[#009FE3] mt-0.5 truncate">
                 Spitfire Close (SL3) • Community Hub Portal
               </div>
             </div>
@@ -457,20 +459,21 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
           </div>
 
           {/* Mobile Menu Trigger + Quick Mobile Donate Button */}
-          <div className="flex lg:hidden items-center gap-2">
+          <div className="flex lg:hidden items-center gap-1.5 sm:gap-2 shrink-0">
             <Link
               href="/donations"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 text-white font-black text-xs shadow-sm"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-emerald-600 text-white font-black text-xs shadow-sm shrink-0"
             >
-              <HeartHandshake className="w-4 h-4" />
+              <HeartHandshake className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span>Donate</span>
             </Link>
             <button
               type="button"
               onClick={() => setMobileMenuOpen((v) => !v)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#F0F7FC] border border-[#D0E6F7] text-[#005A9C] font-bold text-xs"
+              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-[#F0F7FC] border border-[#D0E6F7] text-[#005A9C] font-bold text-xs shrink-0"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5" />}
               <span>Menu</span>
             </button>
           </div>
@@ -603,7 +606,7 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
       <main className="flex-1">{children}</main>
 
       {/* Footer */}
-      <footer className="bg-[#005A9C] text-white mt-12 border-t-4 border-[#009FE3]">
+      <footer className="bg-[#005A9C] text-white mt-12 border-t-4 border-[#009FE3] pb-20 sm:pb-6">
         <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
           <div className="space-y-2">
             <div className="flex items-center gap-3">

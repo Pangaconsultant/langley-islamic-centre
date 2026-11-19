@@ -636,14 +636,14 @@ export default function QuranClassesPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     {[
                       { step: 1, label: "1. Student" },
                       { step: 2, label: "2. Parent" },
                       { step: 3, label: "3. Quran Level" },
                       { step: 4, label: "4. Days & Travel" },
                       { step: 5, label: "5. Declaration" },
-                    ].map((item) => {
+                    ].map((item, idx) => {
                       const active = wizardStep === item.step;
                       const done = wizardStep > item.step;
                       return (
@@ -654,6 +654,8 @@ export default function QuranClassesPage() {
                             validateAndAdvance(item.step as 1 | 2 | 3 | 4 | 5)
                           }
                           className={`py-2 px-2 rounded-xl text-[11px] sm:text-xs font-extrabold border text-center transition ${
+                            idx === 4 ? "col-span-2 sm:col-span-1" : ""
+                          } ${
                             active
                               ? "bg-[#005A9C] text-white border-[#005A9C] shadow-sm"
                               : done

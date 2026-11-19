@@ -132,8 +132,8 @@ export default function HomePage() {
           </div>
 
           {/* Right 5 Columns: "Live Today at LIC" Prayer & Safe Capacity Console */}
-          <div className="lg:col-span-5 bg-[#005A9C] text-white rounded-3xl p-6 sm:p-7 shadow-xl border-2 border-[#009FE3]/40 space-y-5">
-            <div className="flex items-center justify-between gap-2 border-b border-white/15 pb-4">
+          <div className="lg:col-span-5 bg-[#005A9C] text-white rounded-3xl p-5 sm:p-7 shadow-xl border-2 border-[#009FE3]/40 space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/15 pb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-2xl bg-[#009FE3] flex items-center justify-center shrink-0">
                   <Clock className="w-5 h-5 text-white" />
@@ -171,16 +171,18 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* 5 Daily Prayers Grid */}
-            <div className="grid grid-cols-5 gap-2">
-              {(state.prayerTimetable || PRAYER_TIMETABLE).map((p) => {
+            {/* 5 Daily Prayers Grid (2-col on small mobile, 5-col on sm+ so text never squishes) */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {(state.prayerTimetable || PRAYER_TIMETABLE).map((p, idx) => {
                 const isCurrent = p.name === activeSessionName;
                 return (
                   <div
                     key={p.name}
                     className={`rounded-2xl p-2.5 text-center border transition ${
+                      idx === 4 ? "col-span-2 sm:col-span-1" : ""
+                    } ${
                       isCurrent
-                        ? "bg-[#009FE3] border-white text-white shadow-md scale-[1.03]"
+                        ? "bg-[#009FE3] border-white text-white shadow-md sm:scale-[1.03]"
                         : "bg-white/10 border-white/15 text-white"
                     }`}
                   >

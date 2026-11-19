@@ -51,18 +51,18 @@ export const FloatingAssistantWidget: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-50">
       {open ? (
-        <div className="w-[355px] sm:w-[405px] bg-white border-2 border-[#005A9C] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="w-[calc(100vw-1.5rem)] sm:w-[405px] max-w-[405px] bg-white border-2 border-[#005A9C] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[82vh]">
           {/* Header */}
           <div className="bg-[#005A9C] text-white px-4 py-3.5 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#009FE3] flex items-center justify-center">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-[#009FE3] flex items-center justify-center shrink-0">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <div>
-                <h3 className="font-bold text-sm leading-tight">LIC 24/7 AI Assistant</h3>
-                <p className="text-[11px] text-[#F0F7FC]/90">
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm leading-tight truncate">LIC 24/7 AI Assistant</h3>
+                <p className="text-[11px] text-[#F0F7FC]/90 truncate">
                   Cap: {state.occupancy.currentCount}/40 • Jummah Off-Site at Langley Pavilion
                 </p>
               </div>
@@ -70,7 +70,7 @@ export const FloatingAssistantWidget: React.FC = () => {
             <button
               onClick={() => setOpen(false)}
               aria-label="Close Assistant"
-              className="p-1.5 rounded-lg hover:bg-white/15 transition"
+              className="p-1.5 rounded-lg hover:bg-white/15 transition shrink-0"
             >
               <X className="w-5 h-5" />
             </button>
@@ -82,7 +82,7 @@ export const FloatingAssistantWidget: React.FC = () => {
               <Clock className="w-3.5 h-3.5 text-[#009FE3]" />
               Jama&apos;ah:
             </span>
-            {PRAYER_TIMETABLE.map((p) => (
+            {(state.prayerTimetable || PRAYER_TIMETABLE).map((p) => (
               <span key={p.name} className="px-1.5 shrink-0">
                 {p.name} <strong>{p.jamaat}</strong>
               </span>
@@ -189,10 +189,10 @@ export const FloatingAssistantWidget: React.FC = () => {
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-2.5 bg-[#005A9C] hover:bg-[#003F6E] text-white font-bold px-4 py-3.5 rounded-full shadow-xl border-2 border-white transition active:scale-95"
+          className="flex items-center gap-2 bg-[#005A9C] hover:bg-[#003F6E] text-white font-bold px-3.5 py-2.5 sm:px-4 sm:py-3.5 rounded-full shadow-xl border-2 border-white transition active:scale-95"
         >
-          <MessageSquare className="w-5 h-5 text-[#009FE3]" />
-          <span className="text-sm">24/7 LIC Helper &amp; Prayer Times</span>
+          <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-[#009FE3] shrink-0" />
+          <span className="text-xs sm:text-sm">24/7 LIC Helper &amp; Prayer Times</span>
         </button>
       )}
     </div>
