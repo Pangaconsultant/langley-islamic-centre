@@ -4,21 +4,22 @@ LANGLEY ISLAMIC CENTRE (LIC) — SUPABASE POSTGRESQL DATABASE SCHEMA EXPORT
 Project Name : Langley Islamic Centre
 Project ID   : mxoyobwpbkiysijgayfw
 Organization : LIC (swskrwjhsizpcxrllbgh)
-Region       : eu-west-2 (London, UK)
+Region       : eu-west-2 (London, UK — UK GDPR Data Residency)
 API Endpoint : https://mxoyobwpbkiysijgayfw.supabase.co
-Schema       : public
+Schema       : public (10 Tables • All Row-Level Security (RLS) Enabled)
+Last Updated : 2026-11-19
 ================================================================================
 
 --------------------------------------------------------------------------------
-PART 1: TABLE & COLUMN STRUCTURE SUMMARY
+PART 1: TABLE & COLUMN STRUCTURE SUMMARY (10 PRODUCTION TABLES)
 --------------------------------------------------------------------------------
 
-1. public.lic_portal_state (Master Real-Time Portal State & Occupancy Store)
+1. public.lic_portal_state (Master Real-Time Portal State, What's On Carousel & Monthly Prayer Calibration)
    - id                          text          PRIMARY KEY (Default: 'lic_sl3_main')
-   - state                       jsonb         NOT NULL
+   - state                       jsonb         NOT NULL (Contains occupancy, prayerTimetable, monthlyPrayerAdjustments, spotlightEnabled, spotlightSlides, checkIns, mentors, quranSessions, quranStudents, events, neighbourIncidents, volunteerTasks)
    - updated_at                  timestamptz   NOT NULL DEFAULT now()
 
-2. public.lic_prayer_timetable (Daily Adhan & Jama'ah Prayer Times)
+2. public.lic_prayer_timetable (Daily Adhan & Jama'ah Prayer Times — Spitfire Close 51.5008°N, -0.5469°W)
    - name                        text          PRIMARY KEY ('Fajr', 'Zuhar', 'Asr', 'Maghrib', 'Isha')
    - adhan                       text          NOT NULL
    - jamaat                      text          NOT NULL
@@ -110,6 +111,33 @@ PART 1: TABLE & COLUMN STRUCTURE SUMMARY
    - cover_future_donations      boolean       NOT NULL DEFAULT true
    - created_at                  timestamptz   NOT NULL DEFAULT now()
 
+9. public.lic_carpool_listings (UK GDPR Server-Isolated SL3 Car-Share Listings /carpool)
+   - id                          text          PRIMARY KEY
+   - role                        text          NOT NULL CHECK (role IN ('Driver', 'Passenger'))
+   - name                        text          NOT NULL
+   - sector                      text          NOT NULL ('Langley High St' | 'Harrow Market' | 'Trelawney Ave' | 'London Rd' | 'Common Rd' | 'Parlaunt Rd')
+   - regular_times               jsonb         NOT NULL DEFAULT '[]'::jsonb
+   - spare_seats                 integer       NOT NULL DEFAULT 0
+   - notes                       text          NOT NULL DEFAULT ''
+   - private_phone               text          NOT NULL (Withheld server-side; never returned by public GET /api/carpool)
+   - owner_pin_hash              text          NOT NULL (SHA-256 hashed 4-digit Owner PIN)
+   - gdpr_adult_consent          boolean       NOT NULL DEFAULT true (18+ & UK Motor Insurance declaration)
+   - verified_community_member   boolean       NOT NULL DEFAULT true
+   - created_at                  timestamptz   NOT NULL DEFAULT now()
+   - expires_at                  timestamptz   NOT NULL DEFAULT (now() + interval '60 days')
+
+10. public.lic_carpool_requests (UK GDPR Server-Isolated Car-Share Match Requests /carpool)
+   - id                          text          PRIMARY KEY
+   - listing_id                  text          NOT NULL REFERENCES public.lic_carpool_listings(id) ON DELETE CASCADE
+   - requester_name              text          NOT NULL
+   - requester_sector            text          NOT NULL
+   - requester_phone             text          NOT NULL (Withheld server-side; revealed only to PIN-verified owner)
+   - requester_pin_hash          text          NOT NULL (SHA-256 hashed 4-digit Requester PIN)
+   - message                     text          NOT NULL DEFAULT ''
+   - status                      text          NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Accepted'))
+   - gdpr_adult_consent          boolean       NOT NULL DEFAULT true
+   - created_at                  timestamptz   NOT NULL DEFAULT now()
+
 
 --------------------------------------------------------------------------------
 PART 2: COMPLETE SQL DDL SCHEMA, RLS POLICIES & TRIGGER DEFINITIONS
@@ -197,13 +225,82 @@ create table if not exists public.lic_quran_students (
   enrolled_at text not null
 );
 
--- Enable Row-Level Security (RLS) on All Tables
+-- 7. Staff Directory & WebAuthn Biometric Passkeys Table
+create table if not exists public.lic_staff_directory (
+  id text primary key,
+  name text not null,
+  email text not null unique,
+  role text not null,
+  is_active boolean not null default true,
+  passkey_credential_id text,
+  last_login_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+-- 8. HMRC Gift Aid (+25%) Digital Declarations Table
+create table if not exists public.lic_gift_aid_declarations (
+  id text primary key,
+  reference_no text not null,
+  donor_full_name text not null,
+  donor_email text not null,
+  donor_phone text,
+  home_address text not null,
+  postcode text not null,
+  donation_type text not null,
+  payment_reference text not null,
+  amount_gbp numeric(10,2) not null,
+  gift_aid_boost_gbp numeric(10,2) not null,
+  uk_taxpayer_confirmed boolean not null default true,
+  cover_past_4_years boolean not null default true,
+  cover_future_donations boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+-- 9. UK GDPR Server-Isolated Car-Share Listings Table
+create table if not exists public.lic_carpool_listings (
+  id text primary key,
+  role text not null check (role in ('Driver', 'Passenger')),
+  name text not null,
+  sector text not null,
+  regular_times jsonb not null default '[]'::jsonb,
+  spare_seats integer not null default 0,
+  notes text not null default '',
+  private_phone text not null,
+  owner_pin_hash text not null,
+  gdpr_adult_consent boolean not null default true,
+  verified_community_member boolean not null default true,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null default (now() + interval '60 days')
+);
+
+-- 10. UK GDPR Server-Isolated Car-Share Match Requests Table
+create table if not exists public.lic_carpool_requests (
+  id text primary key,
+  listing_id text not null references public.lic_carpool_listings(id) on delete cascade,
+  requester_name text not null,
+  requester_sector text not null,
+  requester_phone text not null,
+  requester_pin_hash text not null,
+  message text not null default '',
+  status text not null default 'Pending' check (status in ('Pending', 'Accepted')),
+  gdpr_adult_consent boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_lic_carpool_requests_listing_id on public.lic_carpool_requests(listing_id);
+create index if not exists idx_lic_carpool_listings_sector on public.lic_carpool_listings(sector);
+
+-- Enable Row-Level Security (RLS) on All 10 Tables
 alter table public.lic_portal_state enable row level security;
 alter table public.lic_prayer_timetable enable row level security;
 alter table public.lic_visitor_checkins enable row level security;
 alter table public.lic_volunteer_tasks enable row level security;
 alter table public.lic_neighbour_incidents enable row level security;
 alter table public.lic_quran_students enable row level security;
+alter table public.lic_staff_directory enable row level security;
+alter table public.lic_gift_aid_declarations enable row level security;
+alter table public.lic_carpool_listings enable row level security;
+alter table public.lic_carpool_requests enable row level security;
 
 -- Grant Data API Access
 grant select, insert, update on public.lic_portal_state to anon, authenticated;
@@ -212,6 +309,10 @@ grant select, insert, update on public.lic_visitor_checkins to anon, authenticat
 grant select, insert, update on public.lic_volunteer_tasks to anon, authenticated;
 grant select, insert, update on public.lic_neighbour_incidents to anon, authenticated;
 grant select, insert, update on public.lic_quran_students to anon, authenticated;
+grant select, insert, update on public.lic_staff_directory to anon, authenticated;
+grant select, insert on public.lic_gift_aid_declarations to anon, authenticated;
+grant select, insert, update, delete on public.lic_carpool_listings to anon, authenticated;
+grant select, insert, update, delete on public.lic_carpool_requests to anon, authenticated;
 
 -- Row-Level Security (RLS) Policies
 create policy "Allow public read of portal state" on public.lic_portal_state for select to anon, authenticated using (id = 'lic_sl3_main');
@@ -237,6 +338,13 @@ create policy "Public update neighbour incidents" on public.lic_neighbour_incide
 create policy "Public read quran students" on public.lic_quran_students for select to anon, authenticated using (true);
 create policy "Public insert quran students" on public.lic_quran_students for insert to anon, authenticated with check (true);
 create policy "Public update quran students" on public.lic_quran_students for update to anon, authenticated using (true) with check (true);
+
+create policy "Allow server API access to lic_staff_directory" on public.lic_staff_directory for all to anon, authenticated using (true) with check (true);
+create policy "Allow public insert on lic_gift_aid_declarations" on public.lic_gift_aid_declarations for insert to anon, authenticated with check (true);
+create policy "Allow public read on lic_gift_aid_declarations" on public.lic_gift_aid_declarations for select to anon, authenticated using (true);
+
+create policy "Allow server API full access to lic_carpool_listings" on public.lic_carpool_listings for all to anon, authenticated using (true) with check (true);
+create policy "Allow server API full access to lic_carpool_requests" on public.lic_carpool_requests for all to anon, authenticated using (true) with check (true);
 
 -- Automatic Relational Sync Trigger Function (SECURITY INVOKER)
 create or replace function public.sync_lic_portal_state_to_tables()
