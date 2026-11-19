@@ -62,6 +62,19 @@ const THEME_STYLES: Record<
   },
 };
 
+// Prevent javascript: or data: URI injection from admin-entered URLs
+function sanitizeSafeUrl(rawUrl?: string, fallback = "/"): string {
+  if (!rawUrl) return fallback;
+  const trimmed = rawUrl.trim();
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
+    return trimmed;
+  }
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return fallback;
+}
+
 function CtaButton({
   href,
   label,
@@ -73,11 +86,12 @@ function CtaButton({
   className: string;
   showArrow?: boolean;
 }) {
-  const isExternal = /^https?:\/\//i.test(href);
+  const safeHref = sanitizeSafeUrl(href, "/");
+  const isExternal = /^https?:\/\//i.test(safeHref);
   if (isExternal) {
     return (
       <a
-        href={href}
+        href={safeHref}
         target="_blank"
         rel="noopener noreferrer"
         className={className}
@@ -88,7 +102,7 @@ function CtaButton({
     );
   }
   return (
-    <Link href={href || "/"} className={className}>
+    <Link href={safeHref} className={className}>
       <span>{label}</span>
       {showArrow && <ArrowRight className="w-4 h-4 shrink-0" />}
     </Link>
@@ -215,9 +229,9 @@ export function HomepageSpotlightCarousel({
         {/* Right 5 Columns: Visual Preview Card */}
         <div className="lg:col-span-5">
           <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-white/25 bg-black/25 shadow-2xl aspect-[16/9] sm:aspect-[4/3]">
-            {slide.imageUrl ? (
+            {slide.imageUrl && sanitizeSafeUrl(slide.imageUrl, "") ? (
               <img
-                src={slide.imageUrl}
+                src={sanitizeSafeUrl(slide.imageUrl, "")}
                 alt={slide.title}
                 className="w-full h-full object-cover"
               />

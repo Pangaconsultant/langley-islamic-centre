@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import {
+  StaffIdentity,
+  getServerHmacSecret,
+  createSignedSessionCookie,
+  verifySignedSessionCookie,
+} from "@/lib/staffSession";
 
 const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -7,15 +13,29 @@ const SUPABASE_URL =
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   "sb_publishable_wRaJKv2zKD6kdQAK-AZTWA_LALl_3WM";
-const DEFAULT_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN || "2580";
+const DEFAULT_PIN =
+  process.env.ADMIN_PIN || process.env.NEXT_PUBLIC_ADMIN_PIN || "2580";
 const SESSION_COOKIE_NAME = "lic_staff_session";
 const OTP_COOKIE_NAME = "lic_pending_otp";
 
-export interface StaffIdentity {
-  name: string;
-  email: string;
-  role: string;
-  authMethod: "Passkey (Biometric)" | "Email OTP / Magic Link" | "Recovery PIN";
+const ALLOWED_REDIRECT_ORIGINS = [
+  "https://langley-islamic-centre.vercel.app",
+  "http://localhost:3005",
+  "http://localhost:3000",
+];
+
+function sanitizeRedirectUrl(rawUrl?: string): string {
+  const fallback = "https://langley-islamic-centre.vercel.app/admin";
+  if (!rawUrl) return fallback;
+  try {
+    const parsed = new URL(rawUrl);
+    if (ALLOWED_REDIRECT_ORIGINS.includes(parsed.origin)) {
+      return parsed.toString();
+    }
+    return fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 // In-memory brute-force rate limiter (5 failed attempts -> 15-minute lockout)
@@ -115,32 +135,6 @@ async function lookupApprovedStaffByPasskey(credentialId: string): Promise<{
   }
 }
 
-function createSignedSessionCookie(identity: StaffIdentity): string {
-  const payloadB64 = Buffer.from(JSON.stringify(identity)).toString("base64url");
-  const sig = crypto
-    .createHmac("sha256", SUPABASE_PUBLISHABLE_KEY)
-    .update(payloadB64)
-    .digest("base64url");
-  return `${payloadB64}.${sig}`;
-}
-
-function verifySignedSessionCookie(cookieValue: string): StaffIdentity | null {
-  try {
-    const [payloadB64, sig] = cookieValue.split(".");
-    if (!payloadB64 || !sig) return null;
-    const expectedSig = crypto
-      .createHmac("sha256", SUPABASE_PUBLISHABLE_KEY)
-      .update(payloadB64)
-      .digest("base64url");
-    if (sig !== expectedSig) return null;
-    return JSON.parse(
-      Buffer.from(payloadB64, "base64url").toString("utf-8")
-    ) as StaffIdentity;
-  } catch {
-    return null;
-  }
-}
-
 export async function GET(req: NextRequest) {
   const cookieToken = req.cookies.get(SESSION_COOKIE_NAME)?.value;
   if (!cookieToken) {
@@ -215,8 +209,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const redirectUrl =
-        body.redirectTo || "https://langley-islamic-centre.vercel.app/admin";
+      const redirectUrl = sanitizeRedirectUrl(body.redirectTo);
 
       // 1. If RESEND_API_KEY is configured, send a 6-digit OTP directly via Resend (3,000 free emails/month, no 2/hr cap)
       const resendKey = process.env.RESEND_API_KEY;
@@ -224,7 +217,7 @@ export async function POST(req: NextRequest) {
         const otpCode = String(crypto.randomInt(100000, 999999));
         const expiresAt = now + 15 * 60 * 1000;
         const otpHash = crypto
-          .createHmac("sha256", SUPABASE_PUBLISHABLE_KEY)
+          .createHmac("sha256", getServerHmacSecret())
           .update(`${staff.email.toLowerCase()}:${otpCode}:${expiresAt}`)
           .digest("hex");
 
@@ -462,10 +455,15 @@ export async function POST(req: NextRequest) {
       let verified = false;
       if (pending?.otpHash && pending?.expiresAt && now <= pending.expiresAt) {
         const candidateHash = crypto
-          .createHmac("sha256", SUPABASE_PUBLISHABLE_KEY)
+          .createHmac("sha256", getServerHmacSecret())
           .update(`${pending.email}:${rawInput}:${pending.expiresAt}`)
           .digest("hex");
-        if (candidateHash === pending.otpHash) {
+        const candBuf = Buffer.from(candidateHash);
+        const pendBuf = Buffer.from(pending.otpHash);
+        if (
+          candBuf.length === pendBuf.length &&
+          crypto.timingSafeEqual(candBuf, pendBuf)
+        ) {
           verified = true;
         }
       }
@@ -493,6 +491,11 @@ export async function POST(req: NextRequest) {
       }
 
       if (!verified) {
+        const nextCount = (record?.count || 0) + 1;
+        failedAttempts.set(ip, {
+          count: nextCount,
+          lockedUntil: nextCount >= MAX_ATTEMPTS ? now + LOCKOUT_MS : 0,
+        });
         return NextResponse.json(
           {
             ok: false,
@@ -531,16 +534,27 @@ export async function POST(req: NextRequest) {
       const email = (body.email || "info@langleyislamiccentre.co.uk")
         .trim()
         .toLowerCase();
-      if (!credentialId) {
+      if (!credentialId || credentialId.length < 16 || credentialId.length > 512) {
         return NextResponse.json(
-          { ok: false, error: "Missing WebAuthn credential ID." },
+          { ok: false, error: "Invalid WebAuthn credential ID." },
           { status: 400 }
+        );
+      }
+
+      const approvedStaff = await lookupApprovedStaffByEmail(email);
+      if (!approvedStaff) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Only emails on the Approved LIC Staff Allowlist can register a Biometric Passkey.",
+          },
+          { status: 403 }
         );
       }
 
       await fetch(
         `${SUPABASE_URL}/rest/v1/lic_staff_directory?email=ilike.${encodeURIComponent(
-          email
+          approvedStaff.email
         )}`,
         {
           method: "PATCH",
@@ -558,7 +572,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         ok: true,
-        message: `Biometric Passkey (FaceID / TouchID / Windows Hello) linked to ${email}.`,
+        message: `Biometric Passkey (FaceID / TouchID / Windows Hello) linked to ${approvedStaff.email}.`,
       });
     }
 
@@ -567,27 +581,36 @@ export async function POST(req: NextRequest) {
     // ========================================================================
     if (action === "verify_passkey") {
       const credentialId = (body.credentialId || "").trim();
-      if (!credentialId) {
+      if (!credentialId || credentialId.length < 16) {
         return NextResponse.json(
-          { ok: false, error: "No passkey assertion provided." },
+          { ok: false, error: "No valid passkey assertion provided." },
           { status: 400 }
         );
       }
 
       const staff = await lookupApprovedStaffByPasskey(credentialId);
-      const identity: StaffIdentity = staff
-        ? {
-            name: staff.name,
-            email: staff.email,
-            role: staff.role,
-            authMethod: "Passkey (Biometric)",
-          }
-        : {
-            name: "Authorised Biometric Trustee",
-            email: body.email || "info@langleyislamiccentre.co.uk",
-            role: "Trustee Admin",
-            authMethod: "Passkey (Biometric)",
-          };
+      if (!staff) {
+        const nextCount = (record?.count || 0) + 1;
+        failedAttempts.set(ip, {
+          count: nextCount,
+          lockedUntil: nextCount >= MAX_ATTEMPTS ? now + LOCKOUT_MS : 0,
+        });
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "Unrecognised or revoked Biometric Passkey. Please register this device's passkey or sign in via Email OTP / Recovery PIN.",
+          },
+          { status: 401 }
+        );
+      }
+
+      const identity: StaffIdentity = {
+        name: staff.name,
+        email: staff.email,
+        role: staff.role,
+        authMethod: "Passkey (Biometric)",
+      };
 
       failedAttempts.delete(ip);
       const sessionToken = createSignedSessionCookie(identity);

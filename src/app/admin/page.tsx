@@ -202,6 +202,13 @@ export default function TrusteeAdminCompliancePage() {
   const sustainableCount = walkingCount + cycleCount + carShareCount;
   const sustainablePct = Math.round((sustainableCount / totalCheckIns) * 100);
 
+  // Sanitize CSV cells against CSV Formula Injection (CWE-1236: =, +, -, @, \t, \r)
+  const sanitizeCsvCell = (raw: string | number): string => {
+    const str = String(raw ?? "");
+    const safePrefix = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+    return `"${safePrefix.replace(/"/g, '""')}"`;
+  };
+
   const handleDownloadCsv = () => {
     const headers = [
       "Record_ID",
@@ -212,24 +219,26 @@ export default function TrusteeAdminCompliancePage() {
       "Salah_or_Activity",
     ];
     const rows = state.checkIns.map((c) => [
-      c.id,
-      c.timestamp,
-      `"${c.visitorName.replace(/"/g, '""')}"`,
-      `"${c.travelMode}"`,
-      c.occupantCount,
-      `"${c.activity}"`,
+      sanitizeCsvCell(c.id),
+      sanitizeCsvCell(c.timestamp),
+      sanitizeCsvCell(c.visitorName),
+      sanitizeCsvCell(c.travelMode),
+      Number(c.occupantCount) || 1,
+      sanitizeCsvCell(c.activity),
     ]);
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
+    const csvString = [headers.join(","), ...rows.map((r) => r.join(","))].join(
+      "\n"
+    );
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
     const dateStr = new Date().toISOString().split("T")[0];
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", blobUrl);
     link.setAttribute("download", `LIC_Visitors_SBC_Audit_${dateStr}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
   };
 
   return (
