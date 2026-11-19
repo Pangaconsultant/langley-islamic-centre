@@ -84,6 +84,9 @@ async function lookupApprovedStaffByEmail(email: string): Promise<{
   role: string;
   is_active: boolean;
   passkey_credential_id?: string;
+  active_token_hash?: string;
+  token_expires_at?: string;
+  last_magic_link_verified_at?: string;
 } | null> {
   try {
     const cleaned = email.trim().toLowerCase();
@@ -103,6 +106,46 @@ async function lookupApprovedStaffByEmail(email: string): Promise<{
     const rows = await res.json();
     if (!rows || rows.length === 0 || !rows[0].is_active) return null;
     return rows[0];
+  } catch {
+    return null;
+  }
+}
+
+interface PendingOtpCookie {
+  email: string;
+  name: string;
+  role: string;
+  requestedAt: number;
+  expiresAt: number;
+  otpHash?: string;
+  sig?: string;
+}
+
+function signPendingCookie(data: Omit<PendingOtpCookie, "sig">): string {
+  const sig = crypto
+    .createHmac("sha256", getServerHmacSecret())
+    .update(`${data.email}:${data.requestedAt}:${data.expiresAt}`)
+    .digest("hex");
+  return Buffer.from(JSON.stringify({ ...data, sig })).toString("base64url");
+}
+
+function parsePendingCookie(raw?: string): PendingOtpCookie | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(raw, "base64url").toString("utf-8")
+    ) as PendingOtpCookie;
+    if (!parsed.email || !parsed.expiresAt || Date.now() > parsed.expiresAt) {
+      return null;
+    }
+    if (parsed.sig && parsed.requestedAt) {
+      const expected = crypto
+        .createHmac("sha256", getServerHmacSecret())
+        .update(`${parsed.email}:${parsed.requestedAt}:${parsed.expiresAt}`)
+        .digest("hex");
+      if (parsed.sig !== expected) return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -139,16 +182,49 @@ async function lookupApprovedStaffByPasskey(credentialId: string): Promise<{
 
 export async function GET(req: NextRequest) {
   const cookieToken = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!cookieToken) {
-    return NextResponse.json({ authenticated: false });
+  if (cookieToken) {
+    const identity = verifySignedSessionCookie(cookieToken);
+    if (identity) {
+      return NextResponse.json({
+        authenticated: true,
+        staff: identity,
+      });
+    }
   }
-  const identity = verifySignedSessionCookie(cookieToken);
-  if (identity) {
-    return NextResponse.json({
-      authenticated: true,
-      staff: identity,
-    });
+
+  // Auto-Unlock Polling Check: If this browser holds a signed pending email login request
+  // and the user just clicked "Sign in" inside the Supabase email (updating last_magic_link_verified_at),
+  // automatically upgrade this browser tab to an authenticated staff session!
+  const pending = parsePendingCookie(req.cookies.get(OTP_COOKIE_NAME)?.value);
+  if (pending && pending.sig && pending.requestedAt) {
+    const staff = await lookupApprovedStaffByEmail(pending.email);
+    if (staff && staff.last_magic_link_verified_at) {
+      const verifiedMs = new Date(staff.last_magic_link_verified_at).getTime();
+      if (!isNaN(verifiedMs) && verifiedMs >= pending.requestedAt - 5000) {
+        const identity: StaffIdentity = {
+          name: staff.name,
+          email: staff.email,
+          role: staff.role,
+          authMethod: "Email OTP / Magic Link",
+        };
+        const sessionToken = createSignedSessionCookie(identity);
+        const res = NextResponse.json({
+          authenticated: true,
+          staff: identity,
+        });
+        res.cookies.delete(OTP_COOKIE_NAME);
+        res.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 14,
+        });
+        return res;
+      }
+    }
   }
+
   return NextResponse.json({ authenticated: false });
 }
 
@@ -238,15 +314,14 @@ export async function POST(req: NextRequest) {
         });
 
         if (resendRes.ok) {
-          const pendingPayload = Buffer.from(
-            JSON.stringify({
-              email: staff.email.toLowerCase(),
-              name: staff.name,
-              role: staff.role,
-              expiresAt,
-              otpHash,
-            })
-          ).toString("base64url");
+          const pendingPayload = signPendingCookie({
+            email: staff.email.toLowerCase(),
+            name: staff.name,
+            role: staff.role,
+            requestedAt: now,
+            expiresAt,
+            otpHash,
+          });
           const res = NextResponse.json({
             ok: true,
             staffName: staff.name,
@@ -305,20 +380,19 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const pendingPayload = Buffer.from(
-        JSON.stringify({
-          email: staff.email.toLowerCase(),
-          name: staff.name,
-          role: staff.role,
-          expiresAt: now + 15 * 60 * 1000,
-        })
-      ).toString("base64url");
+      const pendingPayload = signPendingCookie({
+        email: staff.email.toLowerCase(),
+        name: staff.name,
+        role: staff.role,
+        requestedAt: now,
+        expiresAt: now + 15 * 60 * 1000,
+      });
 
       const res = NextResponse.json({
         ok: true,
         staffName: staff.name,
         staffRole: staff.role,
-        message: `Verification email sent to ${staff.email} (${staff.role}). Enter the 6-digit code from the email OR click the login link inside the email!`,
+        message: `Sign-in email sent to ${staff.email} (${staff.role}). Simply click the blue "Sign in" link inside the email — this page will unlock automatically within 2 seconds! (Or right-click "Sign in" → Copy link address and paste it below).`,
       });
       res.cookies.set(OTP_COOKIE_NAME, pendingPayload, {
         httpOnly: true,
@@ -432,33 +506,33 @@ export async function POST(req: NextRequest) {
       }
 
       const emailToVerify = (body.email || "").trim().toLowerCase();
-      const pendingRaw = req.cookies.get(OTP_COOKIE_NAME)?.value;
-      const pending = pendingRaw
-        ? (JSON.parse(
-            Buffer.from(pendingRaw, "base64url").toString("utf-8")
-          ) as {
-            email: string;
-            name: string;
-            role: string;
-            expiresAt?: number;
-            otpHash?: string;
-          })
-        : null;
+      const pending = parsePendingCookie(req.cookies.get(OTP_COOKIE_NAME)?.value);
 
       const targetEmail = emailToVerify || pending?.email || "";
       if (!targetEmail) {
         return NextResponse.json(
-          { ok: false, error: "Please enter your email and request a code first." },
+          { ok: false, error: "Please enter your email and request a sign-in link first." },
           { status: 400 }
         );
       }
 
-      // Check Resend HMAC OTP first if present
+      const staffRecord = await lookupApprovedStaffByEmail(targetEmail);
+
+      // Extract ?token=... or ?token_hash=... if the user copied and pasted the "Sign in" URL from the Supabase email
+      let extractedToken = rawInput;
+      if (rawInput.includes("token=") || rawInput.includes("token_hash=")) {
+        const tokenMatch = rawInput.match(/(?:token|token_hash)=([^&\s]+)/);
+        if (tokenMatch && tokenMatch[1]) {
+          extractedToken = decodeURIComponent(tokenMatch[1]);
+        }
+      }
+
+      // Check 1: Resend HMAC 6-digit OTP
       let verified = false;
       if (pending?.otpHash && pending?.expiresAt && now <= pending.expiresAt) {
         const candidateHash = crypto
           .createHmac("sha256", getServerHmacSecret())
-          .update(`${pending.email}:${rawInput}:${pending.expiresAt}`)
+          .update(`${pending.email}:${extractedToken}:${pending.expiresAt}`)
           .digest("hex");
         const candBuf = Buffer.from(candidateHash);
         const pendBuf = Buffer.from(pending.otpHash);
@@ -470,25 +544,63 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Verify 6-digit OTP against Supabase Auth (/auth/v1/verify) for magiclink, email, or signup types
+      // Check 2: Pasted "Sign in" Magic Link token hash matched against lic_staff_directory.active_token_hash
+      if (
+        !verified &&
+        staffRecord?.active_token_hash &&
+        extractedToken.length >= 20 &&
+        extractedToken === staffRecord.active_token_hash
+      ) {
+        const expMs = staffRecord.token_expires_at
+          ? new Date(staffRecord.token_expires_at).getTime()
+          : now + 60000;
+        if (now <= expMs) {
+          verified = true;
+        }
+      }
+
+      // Check 3: Verify token or 6-digit OTP against Supabase Auth (/auth/v1/verify)
       if (!verified) {
-        for (const verifyType of ["email", "magiclink", "signup"]) {
+        for (const verifyType of ["magiclink", "email", "signup", "recovery"]) {
+          const isLongHash = extractedToken.length >= 20;
           const sbVerify = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
             method: "POST",
             headers: {
               apikey: SUPABASE_PUBLISHABLE_KEY,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              type: verifyType,
-              email: targetEmail,
-              token: rawInput,
-            }),
+            body: JSON.stringify(
+              isLongHash
+                ? {
+                    type: verifyType,
+                    token_hash: extractedToken,
+                  }
+                : {
+                    type: verifyType,
+                    email: targetEmail,
+                    token: extractedToken,
+                  }
+            ),
           });
           if (sbVerify.ok) {
             verified = true;
             break;
           }
+        }
+      }
+
+      // Check 4: If the link was already clicked/verified after requestedAt on this browser
+      if (
+        !verified &&
+        pending?.sig &&
+        pending?.requestedAt &&
+        staffRecord?.last_magic_link_verified_at
+      ) {
+        const verifiedMs = new Date(
+          staffRecord.last_magic_link_verified_at
+        ).getTime();
+        if (!isNaN(verifiedMs) && verifiedMs >= pending.requestedAt - 5000) {
+          verified = true;
         }
       }
 

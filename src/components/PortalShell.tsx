@@ -181,9 +181,16 @@ export const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children 
           }),
         })
           .then((r) => r.json())
-          .then((data: { ok?: boolean }) => {
-            if (data.ok && window.location.pathname === "/") {
-              window.location.href = "/admin";
+          .then((data: { ok?: boolean; staff?: unknown }) => {
+            if (data.ok) {
+              window.dispatchEvent(
+                new CustomEvent("lic-staff-authenticated", {
+                  detail: data.staff,
+                })
+              );
+              if (window.location.pathname === "/") {
+                window.location.href = "/admin";
+              }
             }
           })
           .catch(() => {});

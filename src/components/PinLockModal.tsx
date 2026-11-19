@@ -106,6 +106,14 @@ export const PinGate: React.FC<PinGateProps> = ({
 
     let active = true;
 
+    const handleStaffAuthEvent = (e: Event) => {
+      const custom = e as CustomEvent<StaffIdentity | undefined>;
+      setUnlocked(true);
+      if (custom.detail) setStaffIdentity(custom.detail);
+      setCheckingSession(false);
+    };
+    window.addEventListener("lic-staff-authenticated", handleStaffAuthEvent);
+
     // 1. Check if the user just clicked a Supabase Magic Link (#access_token=...)
     if (
       typeof window !== "undefined" &&
@@ -141,11 +149,28 @@ export const PinGate: React.FC<PinGateProps> = ({
           });
         return () => {
           active = false;
+          window.removeEventListener(
+            "lic-staff-authenticated",
+            handleStaffAuthEvent
+          );
         };
       }
     }
 
-    // 2. Otherwise check existing HttpOnly staff session cookie
+    // Clean any #error_code=otp_expired hash (caused by email scanners like NordVPN pre-scanning links)
+    if (
+      typeof window !== "undefined" &&
+      window.location.hash &&
+      window.location.hash.includes("error=")
+    ) {
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search
+      );
+    }
+
+    // 2. Check existing HttpOnly staff session cookie (or auto-upgraded pending magic link session)
     fetch("/api/verify-pin", { method: "GET" })
       .then((r) => r.json())
       .then((data: { authenticated?: boolean; staff?: StaffIdentity }) => {
@@ -160,8 +185,29 @@ export const PinGate: React.FC<PinGateProps> = ({
       });
     return () => {
       active = false;
+      window.removeEventListener(
+        "lic-staff-authenticated",
+        handleStaffAuthEvent
+      );
     };
   }, []);
+
+  // 3. Live Auto-Unlock Poll while waiting for the user to click "Sign in" in their email
+  useEffect(() => {
+    if (!otpSent || unlocked) return;
+    const poll = setInterval(() => {
+      fetch("/api/verify-pin", { method: "GET" })
+        .then((r) => r.json())
+        .then((data: { authenticated?: boolean; staff?: StaffIdentity }) => {
+          if (data.authenticated) {
+            setUnlocked(true);
+            if (data.staff) setStaffIdentity(data.staff);
+          }
+        })
+        .catch(() => {});
+    }, 2500);
+    return () => clearInterval(poll);
+  }, [otpSent, unlocked]);
 
   // ==========================================================================
   // OPTION 2: WEBAUTHN BIOMETRIC PASSKEY ENROLLMENT & 1-TAP UNLOCK
@@ -665,28 +711,33 @@ export const PinGate: React.FC<PinGateProps> = ({
             </form>
           ) : (
             <form onSubmit={handleVerifyEmailOtp} className="space-y-3">
-              <div className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] text-xs text-[#005A9C] space-y-1.5">
-                <div className="font-black text-sm">
-                  ✓ Magic Login Link Sent to {staffEmail}
+              <div className="p-4 rounded-2xl bg-[#F0F7FC] border border-[#D0E6F7] text-xs text-[#005A9C] space-y-2">
+                <div className="font-black text-sm flex items-center justify-between">
+                  <span>✓ Sign-In Email Sent to {staffEmail}</span>
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    Waiting for click...
+                  </span>
                 </div>
                 <p className="text-slate-600 leading-relaxed">
-                  Open the email from Supabase and click the{" "}
-                  <strong>Log In / Confirm</strong> link — it will redirect back
-                  to <strong>langley-islamic-centre.vercel.app</strong> and
-                  unlock your staff session automatically!
+                  <strong>1-Click Auto-Unlock:</strong> Open the{" "}
+                  <em>&ldquo;Your sign-in link&rdquo;</em> email from{" "}
+                  <strong>Supabase Auth</strong> and click the blue{" "}
+                  <strong className="underline text-[#005A9C]">Sign in</strong>{" "}
+                  link — <strong>this screen will unlock automatically within 2 seconds</strong>!
                 </p>
               </div>
 
               <div>
                 <label className="block text-xs font-extrabold text-[#005A9C] mb-1">
-                  Or Paste Magic Link URL / 6-Digit Code Here:
+                  Or Right-Click &ldquo;Sign in&rdquo; in the Email → Copy Link Address &amp; Paste Below:
                 </label>
                 <input
                   type="text"
                   required
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value)}
-                  placeholder="Paste link from email or enter 6-digit code"
+                  placeholder="Paste copied 'Sign in' link URL or 6-digit code"
                   className="w-full h-11 px-4 rounded-xl border-2 border-[#D0E6F7] text-center font-mono text-xs sm:text-sm font-bold text-[#005A9C]"
                 />
               </div>
@@ -697,7 +748,7 @@ export const PinGate: React.FC<PinGateProps> = ({
                 className="w-full h-12 rounded-xl bg-[#005A9C] hover:bg-[#003F6E] text-white font-black text-sm inline-flex items-center justify-center gap-2 shadow-md transition"
               >
                 <UserCheck className="w-4 h-4 text-[#009FE3]" />
-                <span>Verify 6-Digit Passcode &amp; Sign In</span>
+                <span>Verify Pasted Sign-In Link / Code</span>
               </button>
 
               <button
