@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Tablet,
   ArrowRight,
+  Megaphone,
 } from "lucide-react";
 import {
   useLicStore,
@@ -32,8 +33,10 @@ import {
   PRAYER_TIMETABLE,
 } from "@/lib/db";
 import { PinGate } from "@/components/PinLockModal";
+import { AdminSpotlightCms } from "@/components/AdminSpotlightCms";
 
 type AdminTab =
+  | "spotlight-cms"
   | "volunteer-cms"
   | "mentors-cms"
   | "events-kiosk-cms"
@@ -46,6 +49,11 @@ export default function TrusteeAdminCompliancePage() {
     updateAdminPin,
     updatePrayerTimetable,
     syncUkLangleyPrayerTimes,
+    setSpotlightEnabled,
+    addSpotlightSlide,
+    updateSpotlightSlide,
+    deleteSpotlightSlide,
+    moveSpotlightSlide,
     addVolunteerTask,
     deleteVolunteerTask,
     releaseVolunteerTask,
@@ -60,7 +68,7 @@ export default function TrusteeAdminCompliancePage() {
     resetDbToSeed,
   } = useLicStore();
 
-  const [activeTab, setActiveTab] = useState<AdminTab>("volunteer-cms");
+  const [activeTab, setActiveTab] = useState<AdminTab>("spotlight-cms");
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   // 1. Volunteer Task Form State
@@ -324,6 +332,22 @@ export default function TrusteeAdminCompliancePage() {
           <div className="bg-white rounded-2xl border-2 border-[#D0E6F7] p-2 flex flex-wrap gap-2">
             <button
               type="button"
+              onClick={() => setActiveTab("spotlight-cms")}
+              className={`px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm inline-flex items-center gap-2 transition ${
+                activeTab === "spotlight-cms"
+                  ? "bg-[#005A9C] text-white shadow-sm"
+                  : "text-[#005A9C] hover:bg-[#F0F7FC]"
+              }`}
+            >
+              <Megaphone className="w-4 h-4 text-[#009FE3]" />
+              <span>
+                1. What&apos;s On Spotlight (
+                {(state.spotlightSlides || []).filter((s) => s.active).length})
+              </span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab("volunteer-cms")}
               className={`px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm inline-flex items-center gap-2 transition ${
                 activeTab === "volunteer-cms"
@@ -332,7 +356,7 @@ export default function TrusteeAdminCompliancePage() {
               }`}
             >
               <HandHeart className="w-4 h-4 text-[#009FE3]" />
-              <span>1. Volunteer Tasks CMS ({state.volunteerTasks.length})</span>
+              <span>2. Volunteer Tasks CMS ({state.volunteerTasks.length})</span>
             </button>
 
             <button
@@ -345,7 +369,7 @@ export default function TrusteeAdminCompliancePage() {
               }`}
             >
               <GraduationCap className="w-4 h-4 text-[#009FE3]" />
-              <span>2. Mentors &amp; Requests CMS ({state.mentors.length})</span>
+              <span>3. Mentors &amp; Requests CMS ({state.mentors.length})</span>
             </button>
 
             <button
@@ -358,7 +382,7 @@ export default function TrusteeAdminCompliancePage() {
               }`}
             >
               <CalendarClock className="w-4 h-4 text-[#009FE3]" />
-              <span>3. Prayer Times, Events, Quran &amp; Kiosk CMS</span>
+              <span>4. Prayer Times, Events, Quran &amp; Kiosk CMS</span>
             </button>
 
             <button
@@ -371,7 +395,7 @@ export default function TrusteeAdminCompliancePage() {
               }`}
             >
               <BarChart3 className="w-4 h-4 text-[#009FE3]" />
-              <span>4. SBC Travel Plan &amp; CSV Export</span>
+              <span>5. SBC Travel Plan &amp; CSV Export</span>
             </button>
 
             <button
@@ -384,12 +408,28 @@ export default function TrusteeAdminCompliancePage() {
               }`}
             >
               <KeyRound className="w-4 h-4 text-[#009FE3]" />
-              <span>5. Security &amp; Reset Confidential PIN</span>
+              <span>6. Security &amp; Reset Confidential PIN</span>
             </button>
           </div>
 
           {/* ============================================================== */}
-          {/* TAB 1: VOLUNTEER TASKS CMS                                     */}
+          {/* TAB 1: HOMEPAGE "WHAT'S ON" SPOTLIGHT CAROUSEL CMS             */}
+          {/* ============================================================== */}
+          {activeTab === "spotlight-cms" && (
+            <AdminSpotlightCms
+              enabled={state.spotlightEnabled ?? true}
+              slides={state.spotlightSlides || []}
+              onToggleEnabled={setSpotlightEnabled}
+              onAddSlide={addSpotlightSlide}
+              onUpdateSlide={updateSpotlightSlide}
+              onDeleteSlide={deleteSpotlightSlide}
+              onMoveSlide={moveSpotlightSlide}
+              onNotify={notify}
+            />
+          )}
+
+          {/* ============================================================== */}
+          {/* TAB 2: VOLUNTEER TASKS CMS                                     */}
           {/* ============================================================== */}
           {activeTab === "volunteer-cms" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">

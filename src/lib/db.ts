@@ -259,9 +259,28 @@ export interface PrayerTimeEntry {
   icon: string;
 }
 
+export type SpotlightTheme = "blue" | "emerald" | "amber";
+
+export interface HomepageSpotlightSlide {
+  id: string;
+  active: boolean;
+  badge: string;
+  title: string;
+  description: string;
+  highlights: string[];
+  primaryCtaLabel: string;
+  primaryCtaHref: string;
+  secondaryCtaLabel?: string;
+  secondaryCtaHref?: string;
+  imageUrl?: string;
+  theme: SpotlightTheme;
+}
+
 export interface LicDatabaseState {
   adminPin: string; // Confidential 4-digit PIN (never displayed publicly, resettable only inside Admin)
   prayerTimetable: PrayerTimeEntry[];
+  spotlightEnabled: boolean;
+  spotlightSlides: HomepageSpotlightSlide[];
   occupancy: OccupancyState;
   checkIns: VisitorCheckIn[];
   frequentVisitors: string[];
@@ -306,11 +325,73 @@ export const PRAYER_TIMETABLE: PrayerTimeEntry[] = [
 // INITIAL SEED DATA (REALISTIC SL3 & SBC TRAVEL PLAN RECORDS)
 // ============================================================================
 
+export const DEFAULT_SPOTLIGHT_SLIDES: HomepageSpotlightSlide[] = [
+  {
+    id: "spot-travel-hub",
+    active: true,
+    badge: "NOW PROMOTING • PUBLIC TRAVEL & PARKING GUIDANCE",
+    title: "Visiting Spitfire Close? Check Our Travel Hub & Parking Guide First",
+    description:
+      "Please help us be great neighbours in SL3. Review our Red & Green parking zones before driving, use permitted public car parks, or share a lift with fellow Langley residents.",
+    highlights: [
+      "Permitted Car Parks: Common Rd, Harvey Park & Harrow Market (2–5 min walk)",
+      "Strictly Red Zones: Never park in Mencap (gated next door) or Resident Yard",
+      "On-site Cycle Rack (right of public layby) & privacy-first SL3 Car-Share",
+    ],
+    primaryCtaLabel: "Open Interactive Parking Map",
+    primaryCtaHref: "/parking",
+    secondaryCtaLabel: "Find an SL3 Car-Share Lift",
+    secondaryCtaHref: "/carpool",
+    imageUrl: "/images/lic-aerial-map.png",
+    theme: "blue",
+  },
+  {
+    id: "spot-maktab",
+    active: true,
+    badge: "EDUCATION • BOYS AGES 7–16",
+    title: "Children's Quran Classes (Maktab) Open for Registration",
+    description:
+      "Structured Nazira Quran & Tajweed classes running 3 days a week (Mon–Wed or Thu–Sat) with teacher placement assessments and 5-minute WhatsApp pickup alerts.",
+    highlights: [
+      "Beginner, Intermediate & Advanced levels for Boys aged 7–16",
+      "£40/month Standing Order due by the 28th of each month",
+      "Online 5-step registration with instant application status tracking",
+    ],
+    primaryCtaLabel: "Register Your Child",
+    primaryCtaHref: "/quran-classes",
+    secondaryCtaLabel: "Ask a Question",
+    secondaryCtaHref: "/contact",
+    imageUrl: "/images/lic-building.jpg",
+    theme: "emerald",
+  },
+  {
+    id: "spot-jummah-sisters",
+    active: true,
+    badge: "WEEKLY SCHEDULE • IMPORTANT VENUE NOTICE",
+    title: "Friday Jummah (13:15) at Langley Pavilion & Sisters' Tafsir",
+    description:
+      "Friday Jummah and Eid prayers are held OFF-SITE at Langley Pavilion so Spitfire Close stays calm for our neighbours. Sisters' Quran & Tafsir meets every Wednesday at LIC.",
+    highlights: [
+      "Friday Jummah (13:15): Off-site at Langley Pavilion (never at Spitfire Close)",
+      "Sisters' Quran & Tafsir: Every Wednesday 13:30–14:30 at LIC",
+      "Support your local Masjid via Stripe or HSBC Bank + 25% UK Gift Aid",
+    ],
+    primaryCtaLabel: "View Events & Schedule",
+    primaryCtaHref: "/events",
+    secondaryCtaLabel: "Support LIC Masjid",
+    secondaryCtaHref: "/donations",
+    imageUrl: "/images/spitfire-close.png",
+    theme: "amber",
+  },
+];
+
 const DEFAULT_ENV_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN || "2580";
 
 const INITIAL_SEED_STATE: LicDatabaseState = {
   adminPin: DEFAULT_ENV_PIN,
   prayerTimetable: PRAYER_TIMETABLE,
+  spotlightEnabled: true,
+  spotlightSlides: DEFAULT_SPOTLIGHT_SLIDES,
   occupancy: {
     currentCount: 18,
     maxCapacity: 40,
@@ -904,6 +985,12 @@ export function getDbState(): LicDatabaseState {
     if (!parsed.prayerTimetable || parsed.prayerTimetable.length === 0) {
       parsed.prayerTimetable = PRAYER_TIMETABLE;
     }
+    if (typeof parsed.spotlightEnabled !== "boolean") {
+      parsed.spotlightEnabled = true;
+    }
+    if (!Array.isArray(parsed.spotlightSlides)) {
+      parsed.spotlightSlides = DEFAULT_SPOTLIGHT_SLIDES;
+    }
     if (!parsed.adminPin) parsed.adminPin = DEFAULT_ENV_PIN;
     return parsed;
   } catch {
@@ -956,6 +1043,12 @@ export function useLicStore() {
       if (active && cloud) {
         if (!cloud.prayerTimetable || cloud.prayerTimetable.length === 0) {
           cloud.prayerTimetable = PRAYER_TIMETABLE;
+        }
+        if (typeof cloud.spotlightEnabled !== "boolean") {
+          cloud.spotlightEnabled = true;
+        }
+        if (!Array.isArray(cloud.spotlightSlides)) {
+          cloud.spotlightSlides = DEFAULT_SPOTLIGHT_SLIDES;
         }
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cloud));
         setState(cloud);
@@ -1706,12 +1799,86 @@ export function useLicStore() {
     [mutate]
   );
 
+  // 11. Homepage Spotlight / What's On Carousel Actions
+  const setSpotlightEnabled = useCallback(
+    (enabled: boolean) => {
+      mutate((prev) => ({
+        ...prev,
+        spotlightEnabled: enabled,
+      }));
+    },
+    [mutate]
+  );
+
+  const addSpotlightSlide = useCallback(
+    (slide: Omit<HomepageSpotlightSlide, "id">) => {
+      mutate((prev) => ({
+        ...prev,
+        spotlightSlides: [
+          {
+            ...slide,
+            id: `spot-${Date.now()}`,
+          },
+          ...(prev.spotlightSlides || []),
+        ],
+      }));
+    },
+    [mutate]
+  );
+
+  const updateSpotlightSlide = useCallback(
+    (id: string, patch: Partial<HomepageSpotlightSlide>) => {
+      mutate((prev) => ({
+        ...prev,
+        spotlightSlides: (prev.spotlightSlides || []).map((s) =>
+          s.id === id ? { ...s, ...patch } : s
+        ),
+      }));
+    },
+    [mutate]
+  );
+
+  const deleteSpotlightSlide = useCallback(
+    (id: string) => {
+      mutate((prev) => ({
+        ...prev,
+        spotlightSlides: (prev.spotlightSlides || []).filter((s) => s.id !== id),
+      }));
+    },
+    [mutate]
+  );
+
+  const moveSpotlightSlide = useCallback(
+    (id: string, direction: "up" | "down") => {
+      mutate((prev) => {
+        const list = [...(prev.spotlightSlides || [])];
+        const idx = list.findIndex((s) => s.id === id);
+        if (idx === -1) return prev;
+        const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+        if (swapIdx < 0 || swapIdx >= list.length) return prev;
+        const tmp = list[idx];
+        list[idx] = list[swapIdx];
+        list[swapIdx] = tmp;
+        return {
+          ...prev,
+          spotlightSlides: list,
+        };
+      });
+    },
+    [mutate]
+  );
+
   return {
     state,
     hydrated,
     updateAdminPin,
     updatePrayerTimetable,
     syncUkLangleyPrayerTimes,
+    setSpotlightEnabled,
+    addSpotlightSlide,
+    updateSpotlightSlide,
+    deleteSpotlightSlide,
+    moveSpotlightSlide,
     recordVisitorCheckIn,
     addFrequentVisitor,
     removeFrequentVisitor,

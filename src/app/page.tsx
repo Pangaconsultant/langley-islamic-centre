@@ -26,6 +26,7 @@ import {
   Heart,
 } from "lucide-react";
 import { LicLogo } from "@/components/LicLogo";
+import { HomepageSpotlightCarousel } from "@/components/HomepageSpotlightCarousel";
 import { useLicStore, PRAYER_TIMETABLE } from "@/lib/db";
 
 const CHARITY_VALUES = [
@@ -238,7 +239,15 @@ export default function HomePage() {
       </section>
 
       {/* ================================================================== */}
-      {/* 2. OUR HOME AT SPITFIRE CLOSE — OFFICIAL LIC BUILDING PHOTO GALLERY */}
+      {/* 2. ADMIN-CONTROLLED "WHAT'S ON" MULTI-SLIDE SPOTLIGHT CAROUSEL     */}
+      {/* ================================================================== */}
+      <HomepageSpotlightCarousel
+        enabled={state.spotlightEnabled ?? true}
+        slides={state.spotlightSlides || []}
+      />
+
+      {/* ================================================================== */}
+      {/* 2B. OUR HOME AT SPITFIRE CLOSE — OFFICIAL LIC BUILDING PHOTO GALLERY */}
       {/* ================================================================== */}
       <section className="bg-white rounded-[2rem] border-2 border-[#D0E6F7] p-6 sm:p-9 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-100 pb-4">
