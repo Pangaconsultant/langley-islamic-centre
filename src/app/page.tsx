@@ -220,20 +220,21 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-2 pt-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
               <Link
-                href="/assistant"
-                className="text-xs font-extrabold text-[#7FD4FF] hover:text-white inline-flex items-center gap-1.5"
+                href="/assistant#monthly-schedule"
+                className="px-3 py-1.5 rounded-xl bg-[#009FE3] hover:bg-[#0086C2] text-white text-xs font-black inline-flex items-center gap-1.5 shadow-sm transition"
               >
-                <Bot className="w-4 h-4" />
-                <span>Ask our 24/7 AI Masjid Helper</span>
+                <CalendarClock className="w-3.5 h-3.5" />
+                <span>Download Monthly Prayer Schedule</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
               <Link
-                href="/contact"
-                className="text-xs font-bold text-slate-200 hover:text-white underline"
+                href="/assistant"
+                className="text-xs font-extrabold text-[#7FD4FF] hover:text-white inline-flex items-center gap-1"
               >
-                Hours: 13:00–19:00
+                <Bot className="w-3.5 h-3.5" />
+                <span>24/7 AI Helper</span>
               </Link>
             </div>
           </div>

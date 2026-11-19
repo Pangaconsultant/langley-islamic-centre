@@ -259,6 +259,28 @@ export interface PrayerTimeEntry {
   icon: string;
 }
 
+export interface MonthlyDayOverride {
+  fajrJamaat?: string;
+  zuharJamaat?: string;
+  asrJamaat?: string;
+  maghribAdhan?: string;
+  maghribJamaat?: string;
+  ishaJamaat?: string;
+}
+
+export interface MonthlyPrayerAdjustments {
+  sunsetOffsetMinutes: number; // Fine-tune astronomical sunset at 51.5008°N, -0.5469°W
+  maghribJamaatWaitMinutes: number; // Minutes after Sunset for Maghrib Jama'ah (default +5)
+  fajrAdhanOffsetMinutes: number;
+  fajrJamaatTime: string;
+  zuharJamaatTime: string;
+  asrJamaatTime: string;
+  ishaJamaatTime: string;
+  jummahTime: string;
+  asrSchool: 0 | 1; // 1 = Hanafi, 0 = Standard (Shafi'i/Maliki/Hanbali)
+  dayOverrides: Record<string, MonthlyDayOverride>; // key: "YYYY-MM-DD"
+}
+
 export type SpotlightTheme = "blue" | "emerald" | "amber";
 
 export interface HomepageSpotlightSlide {
@@ -279,6 +301,7 @@ export interface HomepageSpotlightSlide {
 export interface LicDatabaseState {
   adminPin: string; // Confidential 4-digit PIN (never displayed publicly, resettable only inside Admin)
   prayerTimetable: PrayerTimeEntry[];
+  monthlyPrayerAdjustments: MonthlyPrayerAdjustments;
   spotlightEnabled: boolean;
   spotlightSlides: HomepageSpotlightSlide[];
   occupancy: OccupancyState;
@@ -385,11 +408,25 @@ export const DEFAULT_SPOTLIGHT_SLIDES: HomepageSpotlightSlide[] = [
   },
 ];
 
+export const DEFAULT_MONTHLY_PRAYER_ADJUSTMENTS: MonthlyPrayerAdjustments = {
+  sunsetOffsetMinutes: 0,
+  maghribJamaatWaitMinutes: 5,
+  fajrAdhanOffsetMinutes: 0,
+  fajrJamaatTime: "06:15",
+  zuharJamaatTime: "12:45",
+  asrJamaatTime: "15:00",
+  ishaJamaatTime: "19:30",
+  jummahTime: "13:15 (Off-Site at Langley Pavilion)",
+  asrSchool: 1,
+  dayOverrides: {},
+};
+
 const DEFAULT_ENV_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN || "2580";
 
 const INITIAL_SEED_STATE: LicDatabaseState = {
   adminPin: DEFAULT_ENV_PIN,
   prayerTimetable: PRAYER_TIMETABLE,
+  monthlyPrayerAdjustments: DEFAULT_MONTHLY_PRAYER_ADJUSTMENTS,
   spotlightEnabled: true,
   spotlightSlides: DEFAULT_SPOTLIGHT_SLIDES,
   occupancy: {
@@ -985,6 +1022,9 @@ export function getDbState(): LicDatabaseState {
     if (!parsed.prayerTimetable || parsed.prayerTimetable.length === 0) {
       parsed.prayerTimetable = PRAYER_TIMETABLE;
     }
+    if (!parsed.monthlyPrayerAdjustments) {
+      parsed.monthlyPrayerAdjustments = DEFAULT_MONTHLY_PRAYER_ADJUSTMENTS;
+    }
     if (typeof parsed.spotlightEnabled !== "boolean") {
       parsed.spotlightEnabled = true;
     }
@@ -1052,6 +1092,9 @@ export function useLicStore() {
       if (active && cloud) {
         if (!cloud.prayerTimetable || cloud.prayerTimetable.length === 0) {
           cloud.prayerTimetable = PRAYER_TIMETABLE;
+        }
+        if (!cloud.monthlyPrayerAdjustments) {
+          cloud.monthlyPrayerAdjustments = DEFAULT_MONTHLY_PRAYER_ADJUSTMENTS;
         }
         if (typeof cloud.spotlightEnabled !== "boolean") {
           cloud.spotlightEnabled = true;
@@ -1167,11 +1210,15 @@ export function useLicStore() {
     message: string;
   }> => {
     try {
+      const currentState = getDbState();
+      const adj =
+        currentState.monthlyPrayerAdjustments ||
+        DEFAULT_MONTHLY_PRAYER_ADJUSTMENTS;
       // Open-source AlAdhan UK API (github.com/islamic-network/api.aladhan.com)
       // Method 15 = Moonsighting Committee Worldwide (UK High-Latitude Standard)
-      // Coordinates: Spitfire Close, Langley, Slough SL3 8GY (51.5008, -0.5469)
+      // Coordinates: Spitfire Close, Langley, Slough SL3 8GY (51.5008°N, -0.5469°W)
       const res = await fetch(
-        "https://api.aladhan.com/v1/timings?latitude=51.5008&longitude=-0.5469&method=15&school=1"
+        `https://api.aladhan.com/v1/timings?latitude=51.5008&longitude=-0.5469&method=15&school=${adj.asrSchool}&timezonestring=Europe/London`
       );
       if (!res.ok) {
         return {
@@ -1195,10 +1242,19 @@ export function useLicStore() {
         return `${nh}:${nm}`;
       };
 
-      const fajrAdhan = cleanTime(timings.Fajr);
+      const fajrAdhan = addMinutes(
+        cleanTime(timings.Fajr),
+        adj.fajrAdhanOffsetMinutes || 0
+      );
       const zuharAdhan = cleanTime(timings.Dhuhr);
       const asrAdhan = cleanTime(timings.Asr);
-      const maghribAdhan = cleanTime(timings.Maghrib);
+      // Astronomical Sunset at Spitfire Close (51.5008°N, -0.5469°W) + admin sunset offset
+      const rawSunset = cleanTime(timings.Sunset || timings.Maghrib);
+      const maghribAdhan = addMinutes(rawSunset, adj.sunsetOffsetMinutes || 0);
+      const maghribJamaat = addMinutes(
+        maghribAdhan,
+        adj.maghribJamaatWaitMinutes ?? 5
+      );
       const ishaAdhan = cleanTime(timings.Isha);
 
       mutate((prev) => {
@@ -1207,32 +1263,31 @@ export function useLicStore() {
           {
             name: "Fajr",
             adhan: fajrAdhan || current[0].adhan,
-            jamaat: current[0].jamaat,
+            jamaat: adj.fajrJamaatTime || current[0].jamaat,
             icon: "Sunrise",
           },
           {
             name: "Zuhar",
             adhan: zuharAdhan || current[1].adhan,
-            jamaat: current[1].jamaat,
+            jamaat: adj.zuharJamaatTime || current[1].jamaat,
             icon: "Sun",
           },
           {
             name: "Asr",
             adhan: asrAdhan || current[2].adhan,
-            jamaat: current[2].jamaat,
+            jamaat: adj.asrJamaatTime || current[2].jamaat,
             icon: "CloudSun",
           },
           {
             name: "Maghrib",
             adhan: maghribAdhan || current[3].adhan,
-            // Maghrib Jama'ah automatically tracks sunset + 5 mins
-            jamaat: maghribAdhan ? addMinutes(maghribAdhan, 5) : current[3].jamaat,
+            jamaat: maghribJamaat || current[3].jamaat,
             icon: "Sunset",
           },
           {
             name: "Isha",
             adhan: ishaAdhan || current[4].adhan,
-            jamaat: current[4].jamaat,
+            jamaat: adj.ishaJamaatTime || current[4].jamaat,
             icon: "Moon",
           },
         ];
@@ -1244,7 +1299,7 @@ export function useLicStore() {
 
       return {
         ok: true,
-        message: `Synced today's UK Adhan times for Langley SL3 (51.5008°N, -0.5469°W • Moonsighting Committee UK) & set Maghrib Jama'ah to ${addMinutes(maghribAdhan, 5)}.`,
+        message: `Synced exact Langley SL3 sunset (${maghribAdhan}) & UK Adhan times (51.5008°N, -0.5469°W • Europe/London) & set Maghrib Jama'ah to ${maghribJamaat}.`,
       };
     } catch {
       return {
@@ -1253,6 +1308,66 @@ export function useLicStore() {
       };
     }
   }, [mutate]);
+
+  const updateMonthlyPrayerAdjustments = useCallback(
+    (patch: Partial<MonthlyPrayerAdjustments>) => {
+      mutate((prev) => {
+        const nextAdj: MonthlyPrayerAdjustments = {
+          ...(prev.monthlyPrayerAdjustments ||
+            DEFAULT_MONTHLY_PRAYER_ADJUSTMENTS),
+          ...patch,
+        };
+        const currentTimetable = prev.prayerTimetable || PRAYER_TIMETABLE;
+        const nextTimetable = currentTimetable.map((entry) => {
+          if (entry.name === "Fajr" && patch.fajrJamaatTime) {
+            return { ...entry, jamaat: patch.fajrJamaatTime };
+          }
+          if (entry.name === "Zuhar" && patch.zuharJamaatTime) {
+            return { ...entry, jamaat: patch.zuharJamaatTime };
+          }
+          if (entry.name === "Asr" && patch.asrJamaatTime) {
+            return { ...entry, jamaat: patch.asrJamaatTime };
+          }
+          if (entry.name === "Isha" && patch.ishaJamaatTime) {
+            return { ...entry, jamaat: patch.ishaJamaatTime };
+          }
+          return entry;
+        });
+        return {
+          ...prev,
+          monthlyPrayerAdjustments: nextAdj,
+          prayerTimetable: nextTimetable,
+        };
+      });
+    },
+    [mutate]
+  );
+
+  const setMonthlyDayOverride = useCallback(
+    (dateKey: string, override: MonthlyDayOverride | null) => {
+      mutate((prev) => {
+        const currentAdj =
+          prev.monthlyPrayerAdjustments || DEFAULT_MONTHLY_PRAYER_ADJUSTMENTS;
+        const nextOverrides = { ...(currentAdj.dayOverrides || {}) };
+        if (!override || Object.keys(override).length === 0) {
+          delete nextOverrides[dateKey];
+        } else {
+          nextOverrides[dateKey] = {
+            ...(nextOverrides[dateKey] || {}),
+            ...override,
+          };
+        }
+        return {
+          ...prev,
+          monthlyPrayerAdjustments: {
+            ...currentAdj,
+            dayOverrides: nextOverrides,
+          },
+        };
+      });
+    },
+    [mutate]
+  );
 
   // 1. Visitor Kiosk Check-In Action
   const recordVisitorCheckIn = useCallback(
@@ -1892,6 +2007,8 @@ export function useLicStore() {
     updateAdminPin,
     updatePrayerTimetable,
     syncUkLangleyPrayerTimes,
+    updateMonthlyPrayerAdjustments,
+    setMonthlyDayOverride,
     setSpotlightEnabled,
     addSpotlightSlide,
     updateSpotlightSlide,

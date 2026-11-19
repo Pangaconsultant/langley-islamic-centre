@@ -17,6 +17,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useLicStore, PRAYER_TIMETABLE } from "@/lib/db";
+import { MonthlyPrayerScheduleWidget } from "@/components/MonthlyPrayerScheduleWidget";
 import {
   ChatMessage,
   QUICK_PROMPTS,
@@ -322,6 +323,13 @@ export default function AssistantAndPrayerTimesPage() {
             </button>
           </form>
         </div>
+      </div>
+
+      {/* ================================================================== */}
+      {/* FULL MONTHLY PRAYER SCHEDULE + BRANDED LIC PDF/PRINT & CSV DOWNLOAD */}
+      {/* ================================================================== */}
+      <div id="monthly-schedule" className="scroll-mt-24">
+        <MonthlyPrayerScheduleWidget isAdminMode={false} />
       </div>
     </div>
   );

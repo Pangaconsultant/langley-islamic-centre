@@ -34,6 +34,7 @@ import {
 } from "@/lib/db";
 import { PinGate } from "@/components/PinLockModal";
 import { AdminSpotlightCms } from "@/components/AdminSpotlightCms";
+import { MonthlyPrayerScheduleWidget } from "@/components/MonthlyPrayerScheduleWidget";
 
 type AdminTab =
   | "spotlight-cms"
@@ -950,6 +951,9 @@ export default function TrusteeAdminCompliancePage() {
                   ))}
                 </div>
               </div>
+
+              {/* Monthly Prayer Schedule & Sunset Calibration Manager + Branded PDF/CSV Download */}
+              <MonthlyPrayerScheduleWidget isAdminMode={true} />
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               {/* Create Event & Manage Events */}
