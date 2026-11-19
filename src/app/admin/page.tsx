@@ -35,6 +35,7 @@ import {
 import { PinGate } from "@/components/PinLockModal";
 import { AdminSpotlightCms } from "@/components/AdminSpotlightCms";
 import { MonthlyPrayerScheduleWidget } from "@/components/MonthlyPrayerScheduleWidget";
+import { AdminCarpoolModeration } from "@/components/AdminCarpoolModeration";
 
 type AdminTab =
   | "spotlight-cms"
@@ -1298,6 +1299,9 @@ export default function TrusteeAdminCompliancePage() {
                   </table>
                 </div>
               </div>
+
+              {/* UK GDPR Car-Share Listings Moderation Table */}
+              <AdminCarpoolModeration onNotify={notify} />
             </div>
           )}
 
